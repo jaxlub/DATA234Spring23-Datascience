@@ -1,0 +1,53 @@
+---
+title: "TakeHomeQuiz11"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+Statement of Integrity: “All work presented is my own, and I have followed all rules for collaboration. If I used any AI on this assignment, I have clearly stated both (1) what my search prompt was and (2) what I used from the AI answer.””
+
+Jax Lubkowitz
+
+
+## 1 Jessie Diggins (fastest US Skier) vs Therese Johaug (fastest skier in world)
+The huge Jessie Diggens spike in 2018 is when she won the first ever US gold medal at the Olympics for Nordic Skiing.
+```{r}
+library(here)
+library(lubridate)
+library(tidyverse)
+skiers <- read_csv(here("data/skiers.csv"), skip = 2, na = c("", "NA", '<1'), col_types = cols(
+  `Jessie Diggins: (United States)` = col_double(),
+  `Therese Johaug: (United States)` = col_double()))
+
+skiers <- skiers |> rename(JD = `Jessie Diggins: (United States)`, TJ = `Therese Johaug: (United States)`) |> mutate(Month = ymd(Month, truncated = 1)) |> mutate(TJ = if_else(TJ == 'NaN', TJ, 0))
+
+ggplot(data = skiers)+
+  geom_line(aes(x = Month, y = JD), color = "red") +
+  geom_line(aes(x = Month, y = TJ), color = "blue")
+```
+
+## 2 Fortnite Trend by Region
+```{r}
+fortnite_df <- read_csv(here("data/geoMap.csv"), skip = 1, col_types = cols(
+  Region = col_character(), 
+  'fortnite: (1/1/04 - 11/15/23)' = col_double())) |> rename(Popularity = 'fortnite: (1/1/04 - 11/15/23)')
+
+state_names <- as_tibble(state.name)
+state_regions <- as_tibble(state.region)
+state_df <- bind_cols(state_names, state_regions) |>
+  rename(state_name = `value...1`, state_region = `value...2`)
+
+#Used an inner join to drop Washington DC
+regional_fort_df <- fortnite_df |> inner_join(state_df, by = join_by(Region == state_name))
+
+regional_fort_df |> group_by(state_region) |> summarise(average = mean(Popularity))
+
+```
+
+
+
+a question on something similar to one of the `lubridate` google trends class exercises and/or your turn exercises.
+a question similar to something you completed in Project 1.
+a question similar to something you completed in the second in-class coding quiz (`06-quiz-class.html`)
+a question similar to something you completed in Project 2.

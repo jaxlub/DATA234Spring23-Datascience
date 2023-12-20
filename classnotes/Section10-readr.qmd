@@ -1,0 +1,106 @@
+---
+title: "Section10-Readr"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+```{r}
+library(tidyverse)
+library(here)
+cars_df <- read_csv(here("data/mtcarsex.csv"), skip = 2, na = c("", "NA", "-999"), col_types = cols(
+  cyl = col_factor(),
+  vs = col_logical()
+)) |> slice(-(1:2))
+head(cars_df)
+```
+
+# Exercise 1
+```{r}
+fitness_df <- read_csv(here::here("data/higham_fitness_notclean.csv"), col_types = cols(
+  stepgoal = col_logical(),
+  month = col_factor(),
+  weekday = col_factor()
+))
+
+```
+
+```{r}
+library(tidyverse)
+library(rvest)
+
+## provide the URL and name it something (in this case, url).
+url <- "https://en.wikipedia.org/wiki/Gun_violence_in_the_United_States_by_state"
+
+## convert the html code into something R can read
+h <- read_html(url)
+
+## grabs the tables
+tab <- h |> html_nodes("table")
+
+tab[[5]] |> html_table()
+```
+
+# Exercise 2
+```{r}
+url2 <- "https://www.stlawu.edu/offices/institutional-research/student-diversity-2021"
+
+h2 <- read_html(url2)
+tab <- h2 |> html_nodes("table")
+
+tab[[1]] |> html_table()
+```
+
+```{r}
+## install.packages("jsonlite")
+library(jsonlite)
+cr_cards <- fromJSON(here("data/clash_royale_card_info.json"))
+
+cr_cards_flat <- cr_cards[["cards"]]
+cr_cards_df <- as_tibble(cr_cards_flat)
+```
+
+
+```{r}
+library(tidyverse)
+df <- read_delim(here("data/birthdays.txt"), delim = " - ", skip = 4, col_names = c("Date Gotten", "Name", "Species", "Age"), trim_ws = TRUE, na = c('NA', 'N/A', '?', ""),
+                col_types = cols(
+  animal = col_factor()
+))|> mutate(time = parse_number(time))
+head(df)
+```
+
+```{r}
+url2 <- "https://saintsathletics.com/sports/baseball/stats/2023"
+
+library(forcats)
+h2 <- read_html(url2)
+tab <- h2 |> html_nodes("table")
+
+sports <- tab[[1]] |> html_table() |> select(Player, `OB%`) |> separate(Player, sep = ",", c("Player")) |> arrange(desc(`OB%`)) |> slice(1:5)
+
+
+tab[[1]] |> html_table() |> summarise(avg = mean(AVG))
+
+ggplot(data = sports, aes(x = Player, y = `OB%`))+
+  geom_col() +
+  coord_flip()
+
+```
+
+```{r}
+url2 <- "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+
+h2 <- read_html(url2, col_)
+tab <- h2 |> html_nodes("table")
+
+wiki <- tab[[1]] |> html_table() |> filter(`GICS Sector` == "Information Technology") |> arrange(CIK) |> slice(1:10)
+
+ggplot(data = wiki, aes(x = Symbol, y = CIK, color = `GICS Sector`))+
+  geom_col() +
+  coord_flip()
+
+
+```
+

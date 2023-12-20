@@ -1,0 +1,89 @@
+---
+title: "Quiz3"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+## **Statement of Integrity**: "All work presented is my own, and I have followed all rules for collaboration. I have **not** used any AI for this assignment."
+
+Jax Lubkowitz
+
+```{r}
+library(tidyverse)
+polling_df <- tibble::tribble(~ question, ~ sample_size, 
+                              ~ `Rep_No`, ~ `Rep_Yes`,
+                              ~ `Dem_No`, ~ `Dem_Yes`,
+                              "Should Congress begin impeachment proceedings?", 400, 7, 87, 61, 36,
+                              "Should Congress begin impeachment proceedings?", 200, 10, 87, 62, 29,
+                              "Should President Trump be impeached?",
+                              100, 8, 88, 74, 18,
+                              "Should President Trump be impeached?",
+                              1000, 10, 89, 76, 18)
+```
+
+#Question 1
+
+```{r}
+polling_df |> pivot_longer(2:6, names_to = "Votes", values_to = "amount") |> pivot_wider(names_from = question, values_from = amount)
+
+```
+
+\
+\# Question 2
+
+```{r}
+library(here)
+atp_df <- read_csv(here("data/atp_matches_2019.csv")) |>
+  select(winner_name, winner_seed, winner_rank, loser_rank, surface,
+                 everything())
+atp_df
+atp_df |> summarise(max_seed = mean(winner_seed, na.rm = TRUE)) 
+
+
+```
+
+a\) The argument is not numeric or logical as the winner_seed is a chr and not an actual number
+
+b\)
+
+```{r}
+atp_df |> select(c(1, 5, 9)) |> slice(4:7)
+
+#atp_df(x = 1,5,9 y = [4:7])
+temp <- atp_df[4:7]
+
+#Insert code to filter rows 1,5,9 on temp
+
+```
+
+c\)
+
+```{r}
+#| warning: false
+atp_nomiss <- atp_df |>
+  filter(!is.na(winner_rank) & !is.na(loser_rank)) 
+atp_nomiss
+
+atp_nomiss |> summarise(expectedwin = if_else(winner_rank > loser_rank, true = 1, false = 0)) |> summarise(total = sum(expectedwin)/n()) 
+
+```
+
+d\)
+
+```{r}
+top8Clay <- atp_nomiss |> filter(surface == "Clay") |> group_by(winner_name) |> summarise(totals = n()) |> arrange(desc(totals)) |> slice(1:8)
+
+ggplot(data = top8Clay, aes(x = winner_name, y = totals)) +
+  geom_col() +
+  coord_flip()
+```
+
+3\) How can I pull these out? heres an example of the column
+
+```{r}
+toy_df <- tibble::tibble(Score = c("6-4 3-6 6-2",
+                                  "7-6(6) 6-2",
+                                  "6-2 6-2"))
+```

@@ -1,0 +1,65 @@
+---
+title: "Quiz3"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+# Quiz3
+
+Statement of Integrity: “All work presented is my own, and I have followed all rules for collaboration. I have not used any AI for this assignment.”
+Jax Lubkowitz
+
+## Question 1
+```{r}
+library(tidyverse)
+toy_quiz <- tibble(test_x = c(1, 4, 3, 8),
+                   test_y = c(NA, 6, 3, 10),
+                   test_group = c("A", "A", "B", "C"))
+
+toy_quiz |> arrange(test_x) |> mutate(rank_x = row_number(desc(test_x)))
+
+```
+
+## Question 2
+```{r}
+toy_quiz |> filter(test_y != 'null') |> summarise(mean_y = mean(test_y))
+
+toy_quiz |> summarise(mean_y = mean(test_y, na.rm = TRUE))
+```
+
+
+## Question 3
+```{r}
+library(ggthemes)
+
+highest <- diamonds |> filter(carat>5)
+
+ggplot(data = diamonds, aes(x = carat, y = cut)) +
+  geom_boxplot(fill = "blue") + 
+  theme_economist() +
+  labs(title = "Hello World!", x = "Carat (weight)", y = "Cut") +
+  geom_label(data = highest, aes(label = carat), show.legend = FALSE )
+
+```
+
+## Question 4
+```{r}
+library(babynames)
+top_sevenF <- babynames |> filter(sex == "F") |> filter(year > 2000 & year < 2017) |> group_by(name) |> summarise(n_birth = sum(n)) |> arrange(desc(n_birth)) |> slice(1,2,3,4,5,6,7)
+
+
+ggplot(data = top_sevenF, aes(x = name, y = n_birth)) +
+  geom_col()
+```
+
+## Question 5
+
+```{r}
+#| echo: false
+
+library(tidyverse)
+```
+
+

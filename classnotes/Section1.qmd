@@ -1,0 +1,27 @@
+---
+title: "Day1"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+```{r}
+library(tidyverse)
+pres_df <- read_csv("https://raw.githubusercontent.com/highamm/ds234_quarto/main/data_online/pres2000.csv") 
+head(pres_df)
+```
+
+```{r}
+ggplot(data = pres_df, aes(x = Bush)) +
+  geom_histogram(colour = "green", fill = "purple", bins = 15) +
+  labs(x = "Votes for Gore in Florida")
+```
+
+```{r}
+ggplot (data = pres_df, aes(x = Gore, y = Bush)) + geom_point()
+```
+
+}
+
+The `echo: false` option disables the printing of code (only output is displayed).

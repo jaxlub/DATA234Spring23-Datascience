@@ -1,0 +1,58 @@
+---
+title: "Mod8THQuiz"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+Statement of Integrity: “All work presented is my own, and I have followed all rules for collaboration. If I used any AI on this assignment, I have clearly stated both (1) what my search prompt was and (2) what I used from the AI answer.””
+
+Jax Lubkowitz
+
+Collaboration Reminder: You may work with other students in the class on the quiz, but you must list who you worked with at the top of your quiz. Write the name of any student(s) that you collaborated with in the space below this (ignore this if you did not collaborate with any students).
+
+Jax Lubkowitz
+
+
+## Q1
+```{r}
+library(tidyverse)
+library(rvest)
+
+## provide the URL and name it something (in this case, url).
+url <- "https://en.wikipedia.org/wiki/Roger_Federer_career_statistics"
+
+## convert the html code into something R can read
+h <- read_html(url)
+
+## grabs the tables
+tab <- h |> html_nodes("table")
+
+federer <- tab[[5]] |> html_table()
+```
+
+## Q2
+```{r}
+library(stringr)
+federer |> mutate(slam_name =
+            str_extract(Tournament, pattern = 
+                          c("(Wimbledon|US Open|French Open|Australian Open)"))) |>
+  filter(Result == "Win") |>
+  group_by(slam_name) |>
+  summarise(total = n())
+```
+
+## Q3
+```{r}
+oppononents <- federer |> filter(Result == "Win") |> group_by(Opponent) |> summarise(Total = n()) |>     mutate(Total_ordered = fct_reorder(.f = Opponent, .x = Total))
+
+ggplot(data = oppononents, aes(x=Total_ordered, y = Total)) +
+  geom_segment(aes(x = Total_ordered, xend = Total_ordered,
+                   y = 0, yend = Total)) +
+  geom_point() +
+  coord_flip()
+```
+
+a smaller (10-15 point) question on forcats (Section 8, Your Turn 2, 4, 5) Section 8
+a smaller (10-15 point) question on Import (Section 10, Class Exercise 1 or Your Turn 1) Section 10
+a larger (20-25 point) question similar to something you've done in Project 2 

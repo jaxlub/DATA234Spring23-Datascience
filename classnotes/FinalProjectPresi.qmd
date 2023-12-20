@@ -1,0 +1,103 @@
+---
+title: "FinalProjectPresi"
+author: "Jax Lubkowitz"
+format: 
+  revealjs:
+    embed-resources: true
+editor: visual
+execute:
+  echo: false
+  warning: false
+---
+
+## Data Introduction
+- Patients with Multiple-sclerosis, a chronic neuroinflammatory autoimmune disease, inhibiting the CNS
+
+ - autoimmune disease -> serious implications in pandemic
+ 
+ - What factors impact covid19 in MS?
+ 
+ - Sample: 1141 people with MS
+ 
+ 
+## Data 
+```{r}
+library(tidyverse)
+library(here)
+covid_df <- read_csv(here("data/physionet.org/files/patient-level-data-covid-ms/1.0.0/GDSI_OpenDataset_Final.csv"))
+
+age_df <- covid_df |> select(age_in_cat, covid19_confirmed_case) |> 
+  mutate(age_in_fac = as_factor(age_in_cat)) |> 
+  mutate(age_in_fac = case_when(
+    age_in_fac == 0 ~ "0-18",
+    age_in_fac == 1 ~ "19-50",
+    age_in_fac == 2 ~ "51-70",
+    age_in_fac == 3 ~ "71+")) |> 
+  rename(Response = "covid19_confirmed_case") |>
+  mutate(Response = if_else(Response == "yes", "Positive", "Negative"))
+
+
+ggplot(data = age_df, aes(x = age_in_fac, fill = Response)) +
+  geom_bar() +
+  labs(title = "Number of COVID cases by Age", x = "Age", y = "Total")
+```
+
+## With Assumption that Suspected Covid are confirmed cases
+```{r}
+cofirmed_df <- covid_df |> 
+  mutate(had_covid = case_when(
+    covid19_diagnosis == "suspected" ~ "Positive",
+    covid19_diagnosis == "confirmed" ~ "Positive",
+    covid19_diagnosis == "not_suspected" ~ "Negative")) |>
+  mutate(covid19_diagnosis = as_factor(covid19_diagnosis)) |> 
+  mutate(age_in_fac = as_factor(age_in_cat)) |>
+  mutate(covid19_diagnosis = case_when(
+    age_in_fac == 0 ~ "0-18",
+    age_in_fac == 1 ~ "19-50",
+    age_in_fac == 2 ~ "51-70",
+    age_in_fac == 3 ~ "71+")) |> 
+  rename(Response = "had_covid")
+
+
+ggplot(data = cofirmed_df, aes(x = age_in_fac, fill = Response)) +
+  geom_bar() +
+  labs(title = "Number of COVID cases by Age", x = "Age", y = "Total")
+```
+
+
+## ChiSQR of covid Hospotaliztion of MS population with/without Comorbidities
+Check conditions?
+
+Ho: no association of covid outcome and Comorbidities
+Ha: is related
+
+```{r}
+CHI <- covid_df |> 
+  mutate(covid19_outcome = as_factor(covid19_outcome_levels_2)) |>
+  mutate(covid19_outcome = case_when(
+    covid19_outcome == 0 ~ 'Not Hospitlized',
+    covid19_outcome == 1 ~ 'Hospitlized',
+    covid19_outcome == 2 ~ 'ICU or VF',
+    covid19_outcome == 3 ~ 'Death'))
+
+chisq.test(x = CHI$covid19_outcome, y = CHI$has_comorbidities)
+```
+
+##  Comorbidities associtation with Hospitlization pt. 1
+```{r}
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_cardiovascular_disease) #nope
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_chronic_kidney_disease) # yup
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_chronic_liver_disease) # yup
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_diabetes) #yup
+
+```
+ 
+##  Comorbidities associtation with Hospitlization pt. 2
+```{r}
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_immunodeficiency) # yup
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_lung_disease) # nope
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_malignancy) #nope
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_neurological_neuromuscular) # yup
+#chisq.test(x = CHI$covid19_outcome, y = CHI$comorbidities_other) # Not enough data
+```
+

@@ -1,0 +1,97 @@
+---
+title: "Section5-Workflow"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+# Workflow
+
+```{r}
+library(tidyverse)
+library(here)
+library(dplyr)
+athletes_df <- read_csv(here("data/athletesdata.csv"))
+```
+
+## Exercise 1
+```{r}
+stat_113_df <- read_csv(here("data/stat113.csv")) |>
+  filter(Sex != "Choose") |>
+  filter(GPA <= 4.0)
+```
+
+## Exercise 2
+```{r}
+heavy_cars <- mtcars |> filter(wt > 3)
+
+transmission_df <- mtcars |> group_by(am) |>
+  summarise(mean_disp = mean(disp),
+            med_disp = median(disp),
+            sd_disp = sd(disp))
+```
+
+
+## Exercise 3
+```{r}
+ggplot(data=mtcars,aes(x = mpg)) +
+  geom_histogram(colour="black", fill="white" ,bins=15) +
+  facet_wrap(~cyl, ncol=1)
+```
+
+
+```{r}
+library(skimr)
+videogame_df <- read_csv(here("data/videogame_clean.csv"))
+
+ncol(videogame_df)
+nrow(videogame_df)
+n_missing(videogame_df)
+complete_rate(videogame_df)
+```
+
+## Exercise 4
+```{r}
+stat113_df <- read_csv(here("data/stat113.csv"))
+
+skim(stat113_df, Year, Sex, Sport, Award, SocialMedia)
+skim(stat113_df)
+```
+Only Year and Social Media have no missing values
+
+## Exercise 5
+```{r}
+sum_df <- tibble(class = c("Datascience", "Databases", "Algo Analysis", "SYE"), hours = c("2", "3", "2", "4"))
+```
+
+```{r}
+penguins |> mutate(flipper_ratio = flipper_length_mm / body_mass_g) |>
+  group_by(species, island) |>
+  summarise(mean_flipper = mean(flipper_ratio, na.rm = TRUE)) |>
+  arrange(mean_flipper) |>
+  pivot_wider(names_from = c("species"), values_from = "mean_flipper")
+
+
+videogame_df |> summarise(game_mean = mean(median_playtime, na.rm = TRUE))
+videogame_df |> summarise(game_median = median(median_playtime, na.rm = TRUE))
+
+videogame_df |> filter(median_playtime < 1000) |> summarise(game_mean = mean(median_playtime, na.rm = TRUE))
+videogame_df |> filter(median_playtime < 1000) |> summarise(game_median = median(median_playtime, na.rm = TRUE))
+```
+
+```{r}
+evals_df <- read_csv(here("data/evals_prof_S21.csv"))
+head(evals_df)
+evals_reprex <- tibble(Term = c("F19","S20", "F12"))
+```
+
+```{r}
+penguins |> mutate(flipper_ratio = flipper_length_mm / body_mass_g) |>
+  mutate(flipper_median = median(flipper_ratio, na.rm = TRUE)) |>
+  filter(flipper_ratio > flipper_median) |>
+  group_by(species) |>
+  summarise(count_var = n())
+
+test <- tibble(test = c(100, 1000, 12000, 3000))
+```
+

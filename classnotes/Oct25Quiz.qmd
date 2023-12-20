@@ -1,0 +1,67 @@
+---
+title: "Oct25Quiz"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+"All work presented is my own, and I have followed all rules for collaboration. I have not used any AI for this assignment.”
+
+Jax Lubkowitz
+
+## Question 1
+
+```{r}
+library(tidyverse)
+read_csv(here::here("data/college-majors.csv"),col_types = cols(
+  Major_category = col_factor()), na = c("", "NA", "679"))
+```
+
+
+## Question 2
+```{r}
+library(babynames)
+baby_top10 <- babynames |> filter(sex == "M" & year < 2000 & year >= 1990) |>
+  group_by(name) |>
+  summarise(n_births = sum(n)) |>
+  arrange(desc(n_births)) |>
+  slice(1:10) |>
+  mutate(factored_name = fct_reorder(.f = name, .x = n_births))
+
+ggplot(data = baby_top10, aes(x = factored_name, y = n_births)) + 
+  geom_col(colour = "black", fill = "white") +
+  coord_flip() +
+  theme_minimal()
+```
+
+## Question 3
+```{r}
+library(tidyverse)
+statement_df <- tibble::tibble(statement = c("Climate change is a global issue", "Poverty", "Civil Rights"),
+                               agree = c(50, 60, 60),
+                               neutral = c(10, 5, 10),
+                               disagree = c(5, 4, 7),
+                               total = c(65, 69, 77),
+                               statement_long = c("Climate change is a global issue",
+                                                  "Poverty is a global issue",
+                                                  "Civil Rights is a global issue"))
+#a)
+abrv_climate <- statement_df |> mutate(statement = fct_recode(statement,
+                                      Climate = "Climate change is a global issue"))
+head(abrv_climate)
+
+#b)
+
+
+factored_df <- abrv_climate |> pivot_longer(2:4, names_to = "Response", values_to = "Count") |>  mutate(factored_response = fct_relevel(Response, c("disagree", "neutral", "agree")))
+  
+  
+
+ggplot(data = factored_df, aes(x = factored_response, y = Count)) +
+  geom_col(colour = "black", fill = "white") +
+  coord_flip() +
+  theme_minimal() +
+  facet_wrap(~ statement) +
+  labs(x = "Response", y = "Number")
+```
+

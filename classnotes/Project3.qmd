@@ -1,0 +1,221 @@
+---
+title: "Project3"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+## Introduction
+This data set contains Spotify songs and their information and attributes. From this data, we can learn about the author, genre, album, id and much more. In addition, we can see numerical measurements of each song such as dancebility, energy, key, loudness and other attributes. The goal of this project is to build a good KNN model for this data to predict a songs genre given its set of attributes. This requires finding a good group of attributes that are differing between genres and then finding the optimal k-value to create the best KNN model using our chosen attributes. We will then check how our KNN model predicted song genre to the songs true genre and with this will be able to calculate how accurate our model is. 
+
+```{r}
+#| echo: false
+#| warning: false 
+
+library(tidyverse)
+library(here)
+library(GGally)
+library(class)
+spotify_df <- read_csv(here("data/spotify_p3.csv"))
+```
+
+```{r}
+#| echo: false
+#| warning: false
+
+set.seed(08112023)
+spotify_train <- spotify_df |> slice_sample(n = 15000)
+spotify_test <- anti_join(spotify_df, spotify_train)
+```
+
+## Exploring Training Data - GGplots
+I made ggplots of the distribution of each genre by attribute to see which would be predicotrs for our model. I have included a few examples below to show what a "good" predictor attribute might be and commented out the rest. By looking at the distributions amongst each genre, we can determine which factors might be the best predictors of music genre. Factors with very little to no variation between the genres are not very helpful for distinguishing between groups, thus factors like mode should not be used in our model. Predictors such as Tempo, accousticness, Energy and dancebility all have some spread between the genres and thus could be good predictors for genre.
+
+```{r}
+#| warning: false
+
+# Distribution of Energy by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = energy)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Energy")
+
+# Distribution of Key by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = key)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Key")
+
+# Distribution of Loudness by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = loudness)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Loudness")
+
+# Distribution of instrumentalness by Genre 
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = instrumentalness)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Instrumentalness")
+
+# Distribution of speechiness by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = speechiness)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Speechiness")
+
+# Distribution of liveness by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = liveness)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="liveness")
+
+# Distribution of tempo by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = tempo)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Tempo")
+
+# Distribution of duration_ms by Genre
+# ggplot(data = spotify_train, aes(x=playlist_genre, y = duration_ms)) +
+#   geom_boxplot() +
+#   coord_flip() + 
+#   labs(x="Genre", y="Duration_ms")
+```
+
+```{r}
+#| warning: false
+
+
+# Distribution of danceability by Genre
+ggplot(data = spotify_train, aes(x=playlist_genre, y = danceability)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x="Genre", y="danceability")
+
+# Distribution of acousticness by Genre
+ggplot(data = spotify_train, aes(x=playlist_genre, y = acousticness)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x="Genre", y="Acousticness")
+```
+While not perfect predictors, the distribution and means of acousticness and danceability are usable predictors of genre. As each genre for each attribute has differing means and distributions, these values can be used to predict other songs genre with similar values. 
+
+```{r}
+#| warning: false
+
+# Distribution of Valence by Genre
+ggplot(data = spotify_train, aes(x=playlist_genre, y = valence)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x="Genre", y="valence")
+
+# Distribution of mode by Genre
+ggplot(data = spotify_train, aes(x=playlist_genre, y = mode)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x="Genre", y="Mode")
+```
+On the other hand, mode and valence would not be good predictors as the means and distributions are not very different by genre. If we tried to predict a songs genre given only the mode and valence, we would be hard pressed to do so as there all too similar. 
+
+
+## Exploring Training Data - GGally
+Based off the distributions seen in the ggplot's I selected tempo, accousticness, Energy and dancebility for a GGally to look at the relationship between the different attributes and genre. 
+```{r}
+#| warning: false
+
+ggpairs(data = spotify_train, columns = c(13,12,18,22,10))
+```
+
+## Methods - KNN
+  K-nearest-neighbor is a predictive model that uses an unknown object's attributes to classify it by its similarity to the objects with known attributes and classifications from the training model. The k nearest points in the model to the unknown object's attributes are looked at and the most common classification of these k points, is then predicted for this unknown object. Now if the model just used attribute value, attributes with larger values would skew the model, so each attribute must be scaled so all are weighted equally. For example, if one attribute is a percentage (0 to 1.0) compared to age (0 to 80), the k nearest neighbors would not be impacted that much by percent and almost entirely off of age. Because of this each variable must be scaled to all be the same scale of 0 to 1. 
+  
+  Initially, we separated 75% of the data for training our model and 25% for testing our model. This is to prevent getting an incorrect classification rate. If we build our model using all of the data it will classify the points we use to test better, as their exact values are in the set. This would increase our classification rate but is not the true classification rate of our model. Using data points in the model to test, gives a false classification rate, and thus we seperate out a portion to use for only testing. 
+
+```{r}
+#| warning: false
+
+# Scale datasets
+scale_train <- spotify_train |> 
+    mutate(across(where(is.numeric), ~ (.x - min(.x)) /
+                                 (max(.x) - min(.x)))) 
+scale_test <- spotify_test |> 
+    mutate(across(where(is.numeric), ~ (.x - min(.x)) /
+                                 (max(.x) - min(.x)))) 
+```
+
+```{r}
+#| warning: false
+
+train_small <- scale_train |> select(tempo, acousticness, energy, danceability,loudness,speechiness,instrumentalness,liveness,key)
+test_small <- scale_test |> select(tempo, acousticness, energy, danceability,loudness,speechiness,instrumentalness,liveness,key)
+
+
+## put our response variable into a vector
+train_cat <- scale_train$playlist_genre
+test_cat <- scale_test$playlist_genre
+```
+
+```{r}
+#| warning: false
+
+# can also use map_dbl
+highest_score <- 0
+best_k <- 0
+for (x in 1:50){
+  knn_mod <- knn(train = train_small, test = test_small,
+               cl = train_cat, k = x)
+  tab <- table(knn_mod, test_cat) 
+  score <- sum(diag(tab)) / sum(tab)
+  if (score >= highest_score){
+    highest_score <- score
+    best_k <- x
+  }
+}
+# Best k
+best_k
+# Classification rate of best k value
+highest_score
+knn_mod <- knn(train = train_small, test = test_small,
+               cl = train_cat, k = best_k)
+tab <- table(knn_mod, test_cat) 
+
+# Confusion matrix
+tab
+```
+
+
+## Results
+For my model I used tempo, acousticness, energy, danceability, loudness, speechiness, instrumentalness, liveness, key for a classification rate of 44.56% with k = 49. Initially, I built a model to get the highest classification rate using only 4 predictors but ended up adding more as they increased the classification rate. 
+
+  Above we can see our confusion matrix. In this table, the uppermost left (and thus on the diagnol) is 396 which means that our model predicted 400 EDM songs to be EDM songs. The value below  where as the value below (97) is how many EDM songs were predicted to be Latin songs.
+  
+```{r}
+#| warning: false
+
+  heatmap <- tab |> as.data.frame.matrix() |> rownames_to_column() |> as_tibble()
+  
+  heatmap_pivot <- heatmap |> 
+    pivot_longer(c(2,3,4,5,6,7), names_to = "Actual", values_to = "Count" ) |> 
+    mutate(rowname = fct_relevel(rowname,c("rock","rap","r&b","pop","latin","edm"))) |>
+    mutate(Actual = fct_relevel(Actual, c("edm", "latin", "pop", "r&b", "rap", "rock"))) 
+
+  ggplot(data = heatmap_pivot, aes(y = rowname, x = Actual, fill = Count)) +
+    geom_tile() +
+    scale_fill_viridis_c() +
+    scale_x_discrete(position = "top") +
+    labs(y = "Predicted Genre", x = "Actual Genre", title = "Heatmap Predicitions") +
+    geom_text(aes(label = Count), color = "white")
+```
+
+## Conclusion
+The goal of this project was to build a KNN model to predict a songs genre based off some of its attribute. Using 9 attributes of a song, our model classifies songs with 44.56% accuracy out of 6 genres. This means that given a songs values we can predict its genre correctly just below half of the time. Our model looks at the 49 closest neighbors in the data set for the prediction. For further investigation, I would like to add more genres, to see how these same predictors are across a broader spectrum. In addition, using other modeling strategies, we might be able to build a more accurate model that does not use a KNN model. 
+
+```{r}
+#obj <- list(training = train_small,
+#     cl = train_cat,
+#     k = best_k,
+#     student_name = "Jax Lubkowitz")
+#saveRDS(obj, file = "knnvals_jax_lubkowitz.RData")
+```
+

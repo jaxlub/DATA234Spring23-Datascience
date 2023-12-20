@@ -1,0 +1,144 @@
+---
+title: "Project1"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+### Statement of Integrity
+
+"All work presented is my own, and I have followed all rules for collaboration. I have not discussed this project with anyone outside of students currently enrolled in this course, and I have listed any such students at the top of my project. If I used any AI on this assignment, I have clearly stated both (1) what my search prompt was and (2) what I used from the AI answer."  Jax Lubkowitz
+
+```{r}
+#| echo: false
+#| warning: false
+
+library(tidyverse)
+library(readxl)
+library(here)
+library(dplyr)
+
+majors_unclean <- read_xlsx(here("data/graduates_2022.xlsx"),
+                            sheet = 1, skip = 1)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+
+
+majors_only <- majors_unclean |> filter(row_number() %in% 1:90 | `...1` == "GRADUATES") |>
+  filter(!is.na(`...1`)) |>
+  select(1, 2, starts_with("20")) |>
+  select(c(1, 3:25))
+
+majors_graduates <- majors_only |>
+  pivot_longer(2:24, names_to = "year", values_to = "majors") |>
+  mutate(year = parse_number(str_trunc(year, 7))) |>
+  rename(major = "...1", 
+         n_majors = majors)
+
+majors_df <- majors_graduates |> filter(major != "GRADUATES")
+graduates_df <- majors_graduates |> filter(major == "GRADUATES") |>
+  select(-major)
+
+slumajors_df <- left_join(majors_df, graduates_df, by = "year") |> 
+  rename(n_majors = n_majors.x,
+         n_graduates = n_majors.y)
+```
+
+## Question 1
+
+```{r}
+#| warning: false
+
+library(ggthemes)
+
+CS_majors <- slumajors_df |> filter(major == "Computer Science")
+Math_majors <- slumajors_df |> filter(major == "Mathematics")
+Stats_majors <- slumajors_df |> filter(major == "Statistics")
+
+ggplot(data = slumajors_df, aes(x = year, y = n_majors, group_by = major)) +
+  geom_line(color = "gray83") +
+  geom_line(data = CS_majors, linewidth = 2, aes(color = "Statisitcs")) +
+  geom_line(data = Math_majors, linewidth = 2, aes(color = "Mathmatics")) +
+  geom_line(data = Stats_majors, aes(color = "Computer Science"), linewidth = 2) +
+  theme_minimal() +
+  labs(colour = "Major", x = "Year", y = "Number of Majors")
+```
+
+## Question 2
+
+```{r}
+#| warning: false
+
+weighted_data <- slumajors_df |> mutate(weight = ifelse(major == "Economics/Math (BS)", n_majors/2, n_majors))
+
+MCSS_data <- weighted_data |> filter(major == "Math-Computer Science*" | major == "Economics/Math (BS)" | major == "Mathematics" | major == "Statistics" | major == "Computer Science") |> 
+  group_by(year) |> 
+  mutate(total = sum(n_majors))
+  
+ggplot(data = MCSS_data, aes(x = year, y = total)) +
+  geom_line() +
+  geom_smooth(se = F)
+```
+
+## Question 3
+
+As we can see in question 2, MCSS majors are becoming more popular since 2000. Using the graph from question 1 we can see that the math major remains relatively similar throughout the last 10 years and even recently started to become less popular but the Computer Science and Stats majors are growing rapidly. The dip in the math majors is more then made up for with the other 2 MCSS majors resulting in the overall trend we see in question 2.
+
+## Question 4
+
+```{r}
+#| warning: false
+library(pander)
+
+greatest_major_growth <- slumajors_df |> 
+  mutate(year_cat = case_when((year >= 2000 & year <= 2004) ~ "early",
+                              (year <= 2022 & year >= 2018 ~ "late"))) |> 
+  filter(year_cat != "NA") |>
+  group_by(major, year_cat) |> 
+  summarise(avg_n_majors = mean(n_majors)) |>
+  ungroup() |>
+  pivot_wider(names_from = year_cat, 
+              values_from = avg_n_majors) |> 
+  mutate(change = late-early) |> 
+  arrange(desc(change)) |> 
+  slice(1,2,3,4,5) |>
+  select(major, change)
+
+lowest_major_growth <- slumajors_df |> 
+  mutate(year_cat = case_when((year >= 2000 & year <= 2004) ~ "early",
+                              (year <= 2022 & year >= 2018 ~ "late"))) |> 
+  filter(year_cat != "NA") |>
+  group_by(major, year_cat) |> 
+  summarise(avg_n_majors = mean(n_majors)) |>
+  ungroup() |>
+  pivot_wider(names_from = year_cat, 
+              values_from = avg_n_majors) |> 
+  mutate(change = late-early) |> 
+  arrange(change) |> 
+  slice(1,2,3,4,5) |> 
+  select(major, change)
+
+
+greatest_major_growth |> pander()
+lowest_major_growth |> pander()
+```
+
+## Question 5
+
+In question 4, we can see that the Business, Economics, Communication, Global Studies and Statistic majors have grown the most since the early 2000's with stats and business being new majors (ie no graduates in early 2000's). We can also see that the English department has decreased in average number of majors the most since the early 2000's, along with Art, Sociology, History and Spanish.
+
+## Question 6
+
+```{r}
+both_ends <- bind_rows(greatest_major_growth, lowest_major_growth) |> mutate(major = fct_reorder(major, change))
+
+
+ggplot(data = both_ends, aes(x = major, y = change, fill = (change > 0)))+
+  geom_col(show.legend = F) +
+  coord_flip() + 
+  labs(title = "Difference in Avg. Majors From Early 2000's to 2018-2022", y = "Change in Average", x = "Majors")
+```

@@ -1,0 +1,139 @@
+---
+title: "Project2"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+# Project 2 
+
+“All work presented is my own, and I have followed all rules for collaboration. I have not discussed this project with anyone outside of students currently enrolled in this course, and I have listed any such students at the top of my project. If I used any AI on this assignment, I have clearly stated both (1) what my search prompt was and (2) what I used from the AI answer.”
+Jax Lubkowitz
+
+```{r}
+#| warning: false
+
+library(tidyverse)
+library(readxl)
+library(here)
+library(pander)
+
+evals_df <- read_xlsx(here("data/evals_prof_project2.xlsx"),
+                            sheet = 1)
+```
+
+## Question 1
+```{r}
+#| warning: false
+
+evals_updated <- evals_df |> mutate(question_abrv = case_when(
+                                                Question == "1. Course has been a valuable educational experience" ~ "1. Valuable", 
+                                                Question == "2. Effectively Organized" ~ "2. Organized",
+                                                Question == "3. Environment Conducive to Learning" ~ "3. Good Env.",
+                                                Question == "5a. Fair Assessment of Student work" ~ "5a. Fair",
+                                                Question == "5b. Timely Assessment of Student Work" ~ "5b. Timely",
+                                                Question == "5c. Constructive Assessment of Student Work" ~ "5c. Constructive Assesment",
+                                                Question == "6a. Recommend Instructor to another student" ~ "6a. Recommend Prof.",
+                                                Question == "6b. Recommend Course to another student" ~ "6b. Recommend Course",
+                                                Question == "6c. Instructor was an effective teacher" ~ "6c. Effective Prof."))
+```
+
+## Question 2
+```{r}
+#| warning: false
+
+
+prop_agrees <- evals_updated |> 
+  mutate(agree_strongA_total = `Agree Strongly` + Agree) |>
+  mutate(total_answers = `Agree Strongly` + Agree + `Agree Somewhat` + Neutral + `Disagree Somewhat`+ Disagree + `Disagree Strongly` ) |> 
+  group_by(question_abrv, Course) |> 
+  mutate(prop_agree = agree_strongA_total/total_answers) |> 
+  select(Term, Course, question_abrv, prop_agree, total_answers)
+
+prop_agrees |> pander()
+```
+
+## Question 3
+```{r}
+#| warning: false
+
+
+avg_prop <- prop_agrees |> 
+  ungroup() |> 
+  separate(Course, sep = '-', into = c("Course", "Sections")) |> 
+  group_by(Course, question_abrv) |> summarise(avg_proportion = mean(prop_agree)) |> 
+  mutate(question_abrv = fct_relevel(question_abrv, c("6c. Effective Prof.", "6b. Recommend Course", "6a. Recommend Prof.", "5c. Constructive Assesment","5b. Timely","5a. Fair", "3. Good Env.", "2. Organized", "1. Valuable")))
+  
+
+
+
+ggplot(data = avg_prop, aes(y = avg_proportion, x = question_abrv, color = Course)) +
+  geom_point() +
+  facet_wrap(~Course) +
+  coord_flip() +
+  labs(y = "Mean_Prop_Agree", x = "Question", title = "Question 3") +
+  theme_dark()
+```
+
+## Question 4
+```{r}
+#| warning: false
+
+
+
+avg_responses <- evals_updated |> separate(Course, sep = '-', into = c("Course", "Sections")) |> mutate(total_answers = `Agree Strongly` + Agree + `Agree Somewhat` + Neutral + `Disagree Somewhat`+ Disagree + `Disagree Strongly`) |> group_by(Course, question_abrv) |> summarise(total = sum(total_answers)) |> summarise(avg_responses = mean(total))
+
+avg_responses |> pander()
+
+```
+
+
+## Question 5
+```{r}
+#| warning: false
+
+
+by_class_agree <- prop_agrees |> ungroup() |> separate(Course, sep = '-', into = c("Course", "Sections")) |> group_by(Course, question_abrv) |> summarise(class_agree_total = sum(prop_agree*total_answers), total = sum(total_answers)) |> mutate(prop_agree = class_agree_total/total) |> mutate(question_abrv = fct_relevel(question_abrv, c("6c. Effective Prof.", "6b. Recommend Course", "6a. Recommend Prof.", "5c. Constructive Assesment","5b. Timely","5a. Fair", "3. Good Env.", "2. Organized", "1. Valuable")))
+  
+
+by_class_agree |> pander()
+
+ggplot(data = by_class_agree, aes(y = prop_agree, x = question_abrv, color = Course)) +
+  geom_point() +
+  facet_wrap(~Course) +
+  coord_flip() +
+  labs(y = "Mean_Prop_Agree", x = "Question") +
+  theme_dark() +
+  scale_colour_viridis_d(option = "inferno") 
+```
+
+## Question 6
+In Question 3, our average is the average of the proportion for each question. An example of this is a section with 5 students all answering agree (1.0 proportion) is avaraged with a class of 24 where half equaled agree (.5 proportion) has an average proportion of .75. Where as in question 5 it takes into account the size of each sample and thus using the same data we would have 17 answering agree out of 29 which results in .586 proportion. Now this is a more extreme example then our data so our "averages" are closer together. Question 5 calculates the proportion  of students who agreed/strongly agreed while 3 does the average of the proportions of those that agreed.  The method used in 5 is much better as it takes into account the number of answers for each question while 3 only averages the overall proportion of each class/section for each question. 
+
+## Question 7
+One of the professors weakness is teaching 113 where a lower proportion of students thought the class was valuable, good environment, timely grading and constructive assessment compared to all of the other classes. That being said, across all sections  students agreed less that the classes was fair compared to most of the other questions. The professor seems to excel at teaching 4005, as all of the students agree or strongly agree with recommending the course, timely grading, and a valuable experience but could be due to many factors (small sample size and bias due to being stats masters (after taking all the lower pre-reqs), etc.). In addition the recommendation rate for 213 is much lower then 234 or 4005 and is similar to stats113. Across all classes it is apparent the professor is organized. 
+
+
+## Question 8 - Stat113 Recommend Prof
+```{r}
+#| warning: false
+
+
+library(forcats)
+stat113_recprof <- evals_updated |> separate(Course, sep = "-", into = c("Course", "Section")) |> filter(Course == "113") |> filter(question_abrv == "6a. Recommend Prof.") |> pivot_longer(5:11, names_to = "Votes", values_to = "Responses") |> select(Term,question_abrv, Votes, Responses) |> group_by(Term, Votes) |> summarise(total = sum(Responses)) |> ungroup() |> 
+mutate(Votes = fct_relevel(Votes, c("Disagree Strongly","Disagree", "Disagree Somewhat","Neutral","Agree Somewhat", "Agree","Agree Strongly"))) |> mutate(Term = fct_relevel(Term, c("F19", "S20", "F20", "S21", "F21", "S22")))
+
+
+
+ggplot(data = stat113_recprof, aes(x=Votes, y = total)) +
+  geom_segment(aes(x = Votes, xend = Votes,
+                   y = 0, yend = total)) +
+  geom_point() +
+  facet_wrap(~ Term) +
+  coord_flip()
+```
+
+## Question 9
+The responses through the semesters are pretty consistently shaped with majority being Strongly Agrees. That being said during the Covid semesters there appears to be slightly lower "Strongly Agree" responses but it is not a major change. The year after Covid (F21/S22) responses were much higher in strongly agree but dropped significanly in the fall22 term.  Throughout all semesters there is very few non-agree type responses and almost all have a few somewhat agrees, more agrees and the most strongly agree responses. 
+

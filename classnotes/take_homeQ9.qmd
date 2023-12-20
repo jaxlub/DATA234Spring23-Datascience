@@ -1,0 +1,51 @@
+---
+title: "Take_Home_Quiz9"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+Statement of Integrity: “All work presented is my own, and I have followed all rules for collaboration. If I used any AI on this assignment, I have clearly stated both (1) what my search prompt was and (2) what I used from the AI answer.””
+
+Jax Lubkowitz
+
+Collaboration Reminder: You may work with other students in the class on the quiz, but you must list who you worked with at the top of your quiz. Write the name of any student(s) that you collaborated with in the space below this (ignore this if you did not collaborate with any students).
+
+Jax Lubkowitz
+
+## 1
+1A.) semi_join(match_df, major_df) would return 30 rows as it would find the columns in match (5 players each with 6 rows) that correspond to the major DF. 
+
+1B.) anti_join(major_df, ds234_df) would return 28 as there are 40 stat/DS majors and 12 are in this class so thus would not be in the return result ie 40-12 = 28
+
+1C.) full_join(match_df, major_df) would return 107 rows as there are 40 stat/DS majors and 5 of these majors are squash players (and there is 6 rows for each squash player in match df) so then these would cause 30 (5 squash majors x 6 rows of matchs) + 35 non-squash majors + 42 rows of match data from the other 7 squash players. 
+
+1D.) inner_join(match_df, ds234_df) would return 18 rows as 3 squash players are in this class and each has 6 rows which would each be joined with the corresponding row in this class cause 18 rows of matchs join with the corresponding 3 rows in the class each 6 times. 
+
+1E.) left_join(ds234_df, match_df) would have 42 rows as each row in the class will be kept, students without corresponding matches will have blank spaces. 
+
+
+## Q2
+```{r}
+library(tidyverse)
+set.seed(514131)
+stat213_df <- tibble(name = c("Kaiya", "Evan", "Tommy", 
+                              "Andrew", "Cam", "Clayton", "Lyla"),
+                     gpa = sample(seq(2, 4, by = 0.25), 7, replace = FALSE))
+
+stat234_df <- tibble(name = c("Evan", "Mitchell", "Nick", 
+                              "Clayton", "Ella", "Haley"),
+                     gpa = sample(seq(2, 4, by = 0.25), 6, replace = FALSE))
+
+
+
+#a
+both <- inner_join(stat213_df, stat234_df, by = c("name")) |> rename("GPA of 213" = gpa.x, "GPA of 234" = gpa.y)
+both
+
+#b
+only_213 <- anti_join(stat213_df, stat234_df, by = c("name"))
+only_213
+```
+

@@ -1,0 +1,47 @@
+---
+title: "TakeHomeQuiz12"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+Statement of Integrity: “All work presented is my own, and I have followed all rules for collaboration. If I used any AI on this assignment, I have clearly stated both (1) what my search prompt was and (2) what I used from the AI answer.”
+
+Jax Lubkowitz
+
+```{r}
+library(tidyverse)
+library(here)
+wordle_df <- read_csv(here("data/wordle.csv"))
+wordle_df
+```
+# 1
+```{r}
+#a
+wordle_df |>  mutate(end_s = str_detect(word, "s$")) |> mutate(end_s = if_else(end_s == TRUE, 1, 0)) |> summarise(proportion_s_end = mean(end_s))
+
+wordle_df |> filter(!is.na(day)) |> mutate(end_s = str_detect(word, "s$")) |> mutate(end_s = if_else(end_s == TRUE, 1, 0)) |> summarise(proportion_s_end = mean(end_s))
+
+#b 
+wordle_df |> filter(!is.na(day)) |> mutate(has_e = str_detect(word, "[e]")) |> mutate(has_e = if_else(has_e == TRUE, 1, 0)) |> summarise(prop_has_e = mean(has_e))
+
+```
+# 2 
+```{r}
+library(schrute)
+library(tidytext)
+library(tidyverse)
+
+heatmap_data <- theoffice |> filter(character == "Michael" | character == "Dwight") |> group_by(character, season) |> summarise(total = n()) |> mutate(season = as.factor(season)) 
+
+
+
+ggplot(data = heatmap_data, aes(y = season, x = character, fill = total)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  scale_x_discrete(position = "top") +
+  geom_text(aes(label = total), color = "white")
+```
+
+# 3
+Some seasons have more episodes so character present in more episodes will have more chances to have words, then those in lesser seasons. For example Dwight could only be in season 4 with 5 episodes while Jim is in season 6 with 20 episodes so comparing how many words they speak is not a great comparison. A better solution would be to calculate how many words per episode for each season in order to look at character popularity. 

@@ -1,0 +1,26 @@
+---
+title: "DS-Reflection"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+STAT/DATA 234 Course Reflection
+The purpose of this 10 point course reflection is for you to reflect on what you’ve learned in this class throughout this semester. Answer each question in 2-3 complete sentences in a .qmd file; submit the rendered .html file to Canvas. Each question is worth 2 points. Note that, for parts b, c, d, and e, you may be asked to share what you wrote with another student.
+
+(2 points) Tell me a thing or two that you’ve learned about yourself from taking this class. This might be a perceived strength, weakness to work on, or something else entirely!
+Through this class I have learned that I am not confident at pivoting data either way, and through this class have developed an understanding of what tidy data is. It is interesting to see how data science "tidy data" corresponds to Boyce Cod Normal Form and 4th degree forms in SQL design. I also learned that my name is one of the most common names in recorded history!!
+
+(2 points). Explain to someone who has had intro stat but has not had any other stat courses the main purpose of this class.
+This class is an introduction of how to work with real data to draw meaningful results and desired information. It is essentially how to do what mini-tab does but in much more customizable ways. This course teaches the importance of tidying, manipulating and visualizing data. 
+
+(2 points) What was your favorite part or parts of learning data science or of this class. Why? (Even if you hated everything, choose “the best of the worst”).
+My favorite part of this course was the KNN modeling. I thought this was super cool and was not something I had seen before. In addition, I appreciated the practice with R and its ties back to SQL. 
+
+(2 points) Explain one way in which data science, or this class, was similar to what you thought it would be. Explain one way in which data science, or this class, was different than what you thought it would be.
+I thought this class would be a good introduction to R and be similar to CS140 but in R and I think this followed suit. I did not expect this class to do any modeling, data scraping or SQL which was a nice touch. 
+
+(2 points) What advice would you give someone taking this course next semester?
+I think a background in computer science is extremely helpful in this class even if it is just 140. I would also recommend learning how to troubleshoot or recognize the error message in R as they are not always the most straightforward but a critical skill nonetheless. 
+

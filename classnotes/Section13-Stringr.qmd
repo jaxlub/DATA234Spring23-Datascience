@@ -1,0 +1,70 @@
+---
+title: "Section13-Stringr"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+
+```{r}
+library(here)
+library(tidyverse)
+med_djok_df <- read_csv(here("data/med_djok.csv"))
+head(med_djok_df)
+```
+
+
+```{r}
+str_detect(med_djok_df$point, pattern = "f")
+sum(str_detect(med_djok_df$point, pattern = "d@"))
+
+
+med_djok_df |> filter(str_detect(point, pattern = "@") == TRUE)
+
+str_detect(med_djok_df$point, pattern = "\\*")
+str_detect(med_djok_df$point, pattern = "^4")
+
+med_djok_df |> mutate(serve = case_when(str_detect(med_djok_df$point,"^4") == TRUE ~"Wide", str_detect(med_djok_df$point,"^5") == TRUE ~"Body", str_detect(med_djok_df$point,"^6") == TRUE ~"Center")) |> group_by(Serving, serve, isSvrWinner) |> summarise(hits = n())
+
+med_djok_df |> mutate(volley = str_detect(med_djok_df$point, pattern = "[ZVIK]")) |> group_by(volley) |> select(volley)
+
+```
+
+```{r}
+library(tidyverse)
+library(here)
+beyonce <- read_csv(here("data/beyonce_lyrics.csv"))
+head(beyonce)
+
+```
+
+```{r}
+library(tidytext)
+# unnest tokens breaks up string (in this case line) into words
+beyonce_unnest <- beyonce |> unnest_tokens(output = "word", input = "line")
+
+stops_words = tibble(c("wanna", "yeah", "uh")) |> rename('stop_word' = `c("wanna", "yeah", "uh")`)
+
+top_20 <- beyonce_unnest |> 
+  mutate(word = str_to_lower(word)) |> 
+  group_by(word) |> 
+  summarise(n_count = n()) |> 
+  arrange(desc(n_count)) |> 
+  anti_join(stop_words) |>
+  anti_join(stops_words, by = c("word" = "stop_word")) |>
+  slice(c(1:20))
+
+ggplot(data = top_20, aes(x = word, y = n_count))+
+  geom_point() +
+  coord_flip() +
+  geom_segment(aes(xend = word, y=0,yend = n_count))
+  
+# Stop words - words that don't mean anything, v common words, ex) "the"
+```
+
+```{r}
+   med_djok_df |> mutate(is_volley = str_detect(point, "[vzik]")) |> summarise(proportion = mean(is_volley))
+
+```
+

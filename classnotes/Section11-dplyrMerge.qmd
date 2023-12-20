@@ -1,0 +1,140 @@
+---
+title: "Section11-dplyrMerge"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+# Section 11
+
+```{r}
+library(tidyverse)
+library(here)
+atp_2019 <- read_csv(here("data/atp_matches_2019.csv"))
+atp_2018 <- read_csv(here("data/atp_matches_2018.csv"),
+                     col_types = cols(winner_seed = col_character(),
+                                      loser_seed = col_character()))
+
+atp_df <- bind_rows(atp_2018, atp_2019)
+```
+
+
+```{r}
+df_test2a <- tibble(xvar = c(1, 2))
+df_test2b <- tibble(xvar = c(1, 2), y = c(5, 1))
+bind_rows(df_test2a, df_test2b)
+```
+
+```{r}
+df_test1a <- tibble(xvar = c(1, 2), yvar = c(5, 1))
+df_test1b <- tibble(x = c(1, 2), y = c(5, 1))
+bind_cols(df_test1a, df_test1b)
+```
+
+## Exercise 1
+```{r}
+df_test1a <- tibble(xvar = c(1, 2), yvar = c(5, 1))
+df_test1b <- tibble(x = c(1, 2), y = c(5, 1))
+bind_rows(df_test1a, df_test1b)
+
+## The rows are not staked as they do not have the same name, in one set they are x and y and in the other its xvar and yvar. This can be solved by renaming the variables to match like this - 
+df_test1a <- tibble(xvar = c(1, 2), yvar = c(5, 1)) |> rename(x = 'xvar', y = 'yvar' )
+df_test1b <- tibble(x = c(1, 2), y = c(5, 1))
+bind_rows(df_test1a, df_test1b)
+```
+
+```{r}
+library(tidyverse)
+df1 <- tibble(name = c("Emily", "Miguel", "Tonya"), fav_sport = c("Swimming", "Football", "Tennis"))
+df2 <- tibble(name = c("Tonya", "Miguel", "Emily"),
+              fav_colour = c("Robin's Egg Blue", "Tickle Me Pink", "Goldenrod"))
+```
+
+```{r}
+library(babynames)
+life_df <- babynames::lifetables
+birth_df <- babynames::births
+babynames_df <- babynames::babynames
+
+
+combined_left <- left_join(babynames_df, birth_df, by = c("year" = "year"))
+head(combined_left)
+tail(combined_left)
+```
+
+```{r}
+right_join(babynames_df, birth_df, by = c("year" = "year"))
+left_join(birth_df, babynames_df, by = c("year" = "year"))
+```
+
+```{r}
+full_join(babynames_df, birth_df, by = c("year" = "year"))
+inner_join(babynames_df, birth_df, by = c("year" = "year"))
+```
+
+## Exercise 2
+```{r}
+left_join(babynames_df, birth_df, by = c("year" = "year"))
+left_join(birth_df, babynames_df, by = c("year" = "year"))
+
+# In the first we use a left join on the babynames DF and thus join the birth_df on the year but keep all rows of the babynames. Where as in the second we use a left join on birth_df thus retaining the initial amount of rows from birth_df and bind all matching to babynames. 
+```
+
+```{r}
+atp_2019 <- read_csv(here("data/atp_matches_2019.csv"))
+atp_2018 <- read_csv(here("data/atp_matches_2018.csv"))
+win10 <- atp_2018 |> group_by(winner_name) |>
+  summarise(nwin = n()) |> 
+  filter(nwin >= 10)
+
+tennis_2019_10 <- semi_join(atp_2019, win10,
+                            by = c("winner_name" = "winner_name"))
+new_winners <- anti_join(atp_2019, atp_2018,
+                         by = c("winner_name" = "winner_name")) 
+```
+
+## Exercise 3
+A) 5
+B) 6
+C) 8
+D) 3
+E) 3
+F) 2
+
+```{r}
+slumajors_df <- read_csv(here("data/SLU_Majors_15_19.csv"))
+collegemajors_df <- read_csv(here("data/college-majors.csv"))
+
+left_join(slumajors_df, collegemajors_df, by = "Major")
+```
+
+```{r}
+library(tidyverse)
+mortality_df <- read_csv(here("data/gun_violence_us.csv"))
+
+dc_mort <- tibble(state = "DC", 
+                  mortality_rate = 16.7,
+                  ownership_rate = 0.087,
+                  region = "NE")
+all_df <- bind_rows(mortality_df, dc_mort)
+```
+
+```{r}
+df1 <- as_tibble(state.x77)
+df2 <- as_tibble(state.abb)
+states_df <- bind_cols(df1, df2)
+
+left_join(all_df, states_df, by = c("state" = "value"))
+right_join(all_df, states_df, by = c("state" = "value"))
+
+
+ne_states <- all_df |> filter(region == "NE")
+
+semi_join(states_df, ne_states, by = c("value" = "state"))
+
+anti_join(states_df, ne_states, by = c("value" = "state"))
+
+```
+
+

@@ -1,0 +1,91 @@
+---
+title: "Section16-SQL"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+
+```{r}
+library(DBI)
+library(duckdb)
+con <- DBI::dbConnect(duckdb::duckdb())
+```
+
+```{r}
+library(here)
+duckdb_read_csv(conn = con, name = "tennis2018", 
+                files = here("data/atp_matches_2018.csv"))
+duckdb_read_csv(conn = con, name = "tennis2019", 
+                files = here("data/atp_matches_2019.csv"))
+```
+
+```{r}
+dbListTables(con)
+dbExistsTable(con, "tennis2019")
+dbExistsTable(con, "tennis2020")
+```
+
+```{r}
+library(tidyverse)
+
+sql <- "
+  SELECT surface, winner_name, loser_name, w_ace, l_ace, minutes
+  FROM tennis2019 
+  WHERE minutes > 240
+"
+dbGetQuery(con, sql)|>
+  as_tibble()
+```
+
+```{r}
+library(dbplyr)
+tennis_db <- tbl(con, "tennis2019")
+
+tennis_query1 <- tennis_db |> 
+  filter(minutes > 240) |> 
+  select(minutes, winner_name, loser_name, minutes, tourney_name)
+tennis_query1
+
+tennis_query1 |>
+  show_query()
+
+tennis_query1 |>
+  collect()
+```
+
+```{r}
+over20aces <- tennis_db |> filter(w_ace > 20) |>
+  select(w_ace, winner_name) |>
+  group_by(winner_name) |>
+  summarise(nmatch = n()) |>
+  arrange(desc(nmatch))
+over20aces |>
+  show_query()
+
+```
+
+```{r}
+query <- tennis_db |> group_by(surface) |> summarise(total = n())
+
+query |> show_query()
+
+tennis_db |> filter(tourney_name == 'Wimbledon')
+tennis_db |> select(winner_name, loser_name, w_ace, l_ace) |> mutate(ace_diff = w_ace - l_ace)
+tennis_db |> mutate(rank_diff = winner_rank_points - loser_rank_points) |> select(rank_diff, winner_name, loser_name) |> show_query()
+```
+SELECT "tourney_name", AVG("minutes") AS "mean_min"
+FROM "tennis2019"
+GROUP BY "tourney_name"
+```{r}
+tennis_db |> group_by(tourney_name) |> summarise(mean(minutes))
+```
+
+forecats and lubridate
+```{r}
+library(forcats)
+tennis_db |> mutate(Type_ordered = fct_relevel(tourney_name, c("Brisbane", "Wimbeldon")))
+```
+
+

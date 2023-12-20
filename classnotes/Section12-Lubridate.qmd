@@ -1,0 +1,142 @@
+---
+title: "Section12-Lubridate"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+```{r}
+library(tidyverse)
+library(lubridate)
+today()
+now()
+```
+
+```{r}
+library(here)
+holiday_df <- read_csv(here("data/animal_crossing_holidays.csv"))
+holiday_df
+```
+
+```{r}
+holiday_df |> mutate(Date_test = dmy(Date1)) |>
+  select(Date_test, everything())
+```
+
+```{r}
+holiday_df |> mutate(Date_test2 = make_date(year = Year,
+                                             month = Month,
+                                             day = Day)) |>
+  select(Date_test2, everything())
+```
+
+## Exercise 1
+Date4 has multiple formatting, which prevents us from using the ymd function as some dates are in shorthand while others write it out ie 20 vs 2020, the long handed dates also use a different seperator - vs /. 
+
+## Exercise 2
+```{r}
+holiday_df |> mutate(Date_test3 = mdy(Date3))
+holiday_df |> mutate(Date_test5 = ymd(Date5))
+```
+
+
+```{r}
+library(quantmod)
+
+start <- ymd("2011-01-01")
+end <- ymd("2021-5-19")
+getSymbols(c("AAPL", "NTDOY", "CMG", "SPY"), src = "yahoo",
+           from = start, to = end)
+
+date_tib <- as_tibble(index(AAPL)) |>
+  rename(start_date = value)
+app_tib <- as_tibble(AAPL)
+nint_tib <- as_tibble(NTDOY)
+chip_tib <- as_tibble(CMG)
+spy_tib <- as_tibble(SPY)
+all_stocks <- bind_cols(date_tib, app_tib, nint_tib, chip_tib, spy_tib)
+
+stocks_long <- all_stocks |>
+  select(start_date, AAPL.Adjusted, NTDOY.Adjusted,
+                      CMG.Adjusted, SPY.Adjusted) |>
+  pivot_longer(2:5, names_to = "Stock_Type", values_to = "Price") |>
+  mutate(Stock_Type = fct_recode(Stock_Type,
+                                 Apple = "AAPL.Adjusted",
+                                 Nintendo = "NTDOY.Adjusted",
+                                 Chipotle = "CMG.Adjusted",
+                                 `S & P 500` = "SPY.Adjusted"
+                                 ))
+tail(stocks_long)
+
+```
+
+```{r}
+stocks_sp <- stocks_long |> filter(Stock_Type == "S & P 500")
+ggplot(data = stocks_sp, aes(x = start_date, y = Price)) +
+  geom_line()
+```
+
+```{r}
+stocks_long |> mutate(year_stock = year(start_date))
+stocks_long |> mutate(month_stock = month(start_date))
+stocks_long |> mutate(day_stock = mday(start_date))
+```
+
+```{r}
+test <- mdy("August 12, 2020")
+yday(test)
+stocks_long |> mutate(day_of_week = wday(start_date))
+stocks_long |> mutate(day_of_week = wday(start_date,
+                                          label = TRUE, abbr = FALSE))
+```
+
+## Exercise 3
+```{r}
+stocks_long |> mutate(month_stock = month(start_date, label = TRUE, abbr = FALSE))
+stocks_long |> mutate(month_stock = month(start_date, label = TRUE, abbr = TRUE))
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(lubridate)
+dspop_df <- read_csv(here("data/multiTimeline.csv"), skip = 2)
+
+dspop_df <- dspop_df |> mutate(date_var = ymd(Month, truncated = 1)) |> rename("count" = `data science: (United States)`)
+
+ggplot(dspop_df, aes(x = date_var, y = count)) +
+  geom_line()+
+  geom_smooth(se = FALSE)
+```
+
+```{r}
+start <- ymd("2011-01-01")
+end <- ymd("2023-11-01")
+getSymbols(c("GME"), src = "yahoo",
+           from = start, to = end)
+
+date_tib <- as_tibble(index(GME)) |>
+  rename(start_date = value)
+gme_tib <- as_tibble(GME)
+gme_stock <- bind_cols(date_tib, gme_tib)
+
+stocks_long <- gme_stock |>
+  select(start_date, GME.Adjusted) 
+ggplot(stocks_long, aes(x = start_date, y = GME.Adjusted))+
+  geom_line()
+```
+
+```{r}
+skiers <- read_csv(here("data/skiers.csv"), skip = 2, na = c("", "NA"), col_types = cols(
+  `Jessie Diggins: (United States)` = col_double(),
+  `Therese Johaug: (United States)` = col_double()))
+  
+skiers <- skiers |> rename(JD = `Jessie Diggins: (United States)`, TJ = `Therese Johaug: (United States)`) |> mutate(Month = ymd(Month, truncated = 1)) |> mutate(TJ = if_else(TJ == "NaN", TJ, 0))
+
+ggplot(data = skiers)+
+  geom_line(aes(x = Month, y = JD), color = "red") +
+  geom_line(aes(x = Month, y = TJ), color = "blue")
+
+skiers |> mutate(year = year(Month)) |> group_by(year) |> summarise(JDavg = mean(JD, na.rm = TRUE), TJavg = mean(TJ, na.rm = TRUE))
+```
+

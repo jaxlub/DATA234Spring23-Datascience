@@ -1,0 +1,322 @@
+---
+title: "Day2"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+## Day 2 HW
+
+
+1.9 Answers
+
+Jax Lubkowitz: Senior 
+
+I am a Computer Science and Biology Double Major.
+
+I am taking this class to learn R and have heard good things froms friends.
+
+I am currently taking stat113 with AJ and took AP stats my senior year of highschool.
+
+I have not taken stat213 but have completed many of the CS classes here. 
+
+I am from Richmond, Vermont. 
+
+I am on the Nordic ski team. 
+
+My favorite TV show is The Office and my favorite artist is Pop Smoke.
+
+I love dogs.
+
+I am most interested in the seventh learning goal, of applying R and Python to my own studies for data analysis and visualization. 
+
+I hope to re-cover my stats skills and develop a better understanding of R. 
+
+I hope to apply the advice on exploring different function and packages that we dont see in class. With many open-source resources and documentation there is too much to cover in any one class but that does not mean that much of these aspects cant be applied in cool ways to this class. 
+
+```{r}
+library(tidyverse)
+stat113_df <- read_csv("https://raw.githubusercontent.com/highamm/ds234_quarto/main/data_online/stat113.csv")
+```
+
+Histogram
+
+```{r}
+ggplot(data = stat113_df, aes(x = GPA)) +
+  geom_histogram()
+```
+
+```{r}
+ggplot(data = stat113_df, aes(x = GPA)) +
+  geom_histogram(colour = "black", fill = "white", bins = 17)
+```
+
+```{r}
+ggplot(data = stat113_df, aes(x = GPA)) +
+  geom_freqpoly(bins = 15)
+```
+
+## Excercise 1 & 2 & 3
+
+```{r}
+ggplot(data = stat113_df, aes(x = Wgt))  + geom_histogram(colour = "seagreen2", fill = "steelblue3", bins = 17) + geom_freqpoly(bins = 15)
+```
+
+## Excercise 4 & 5
+
+```{r}
+ggplot(data = stat113_df, aes(x = Award)) +
+  geom_bar(colour = "black", fill = "blue")
+```
+
+```{r}
+ggplot(data = stat113_df, aes(x = Year, fill = SocialMedia)) +
+  geom_bar(position = "fill") +
+  labs(y = "Proportion")
+```
+
+## Excercise 6
+
+```{r}
+ggplot(data = stat113_df, aes(x = Sport, fill = Award)) +
+  geom_bar(position = "fill") +
+  labs(y = "Proportion")
+```
+
+A larger proportion of non-athletes would want to win a Nobel prize (then Olympic or Academy), while the most chosen among athletes is an Olympic medal with the least selected in both sports/non-sports being an academy award.
+
+```{r}
+ggplot(data = stat113_df, aes(x = Award, y = Exercise)) +
+  geom_boxplot()
+```
+
+```{r}
+ggplot(data = stat113_df, aes(x = Award, y = Exercise)) +
+  geom_violin()
+```
+
+```{r}
+ggplot(data = stat113_df, aes(x = Award, y = Exercise)) +
+  geom_jitter(width = 0.10)
+```
+
+# Exercise 7 & 8 
+
+```{r}
+ggplot(data = stat113_df, aes(x = Year, y = Wgt)) +
+  geom_violin(colour = "cyan3", fill = "purple3")
+```
+Freshman and sophomores have a larger weight distributions with similar distribution shapes while junior and seniors have smaller, more concentrated weights with similar distributions.
+
+```{r}
+fitness_full <- read_csv("https://raw.githubusercontent.com/highamm/ds234_quarto/main/data_online/higham_fitness_clean.csv",
+                         col_types = list(stepgoal = col_factor())) |>
+  mutate(weekend_ind = case_when(weekday == "Sat" | weekday == "Sun" ~ "weekend",
+                                 TRUE ~ "weekday"))
+```
+## Exercise 9
+```{r}
+ggplot(data = fitness_full, aes(x = distance, y = active_cals)) +
+  geom_point()
+```
+Some days almost 10 miles were walked but no calories were used. 
+
+## Exercise 10 
+steps vs flights of stairs
+```{r}
+ggplot(data = fitness_full, aes(x = steps, y = flights)) +
+  geom_point()
+```
+There is not a strong relationship between the number of steps taken and number of flights of stair climbed; however, over 20,000 steps there is a positive relationship as the number of steps increases so does the number of flights. A strong linear relationship is not apparent.  
+```{r}
+ggplot(data = stat113_df, aes(x = Wgt, y = Hgt, colour = Sex)) +
+  geom_point()
+```
+```{r}
+ggplot(data = stat113_df, aes(x = Wgt, y = Hgt, shape = Sex)) +
+  geom_point()
+```
+```{r}
+ggplot(data = stat113_df, aes(x = Wgt, y = Hgt, size = Exercise)) +
+  geom_point()
+```
+```{r}
+ggplot(data = stat113_df, aes(x = Wgt, y = Hgt)) +
+  geom_point() +
+  facet_wrap(~ Year)
+```
+## Exercise 11
+```{r}
+ggplot(data = fitness_full, aes(x = steps, y = flights)) +
+  geom_point() +
+  facet_wrap(~ weekday)
+```
+## Section 2.4: Practice Excercises
+```{r}
+stat113_restructured <- stat113_df |> group_by(SocialMedia) |>
+  summarise(n_social = n())
+stat113_restructured
+```
+```{r}
+ggplot( data = stat113_restructured, aes(x = SocialMedia, y = n_social)) +  
+  geom_col(colour = "blue", fill = "green")
+```
+
+Class Excercise 2
+```{r}
+ggplot(data = fitness_full, aes(x = active_cals, y = distance)) +
+  geom_point() +
+  geom_smooth(se = TRUE, span = .0001)
+## method = 'lm'
+## span controls how "wiggly" the smoother is
+```
+
+
+```{r}
+ggplot(data = fitness_full, aes(x = Start, y = steps)) +
+  geom_line() +
+  geom_smooth()
+```
+```{r}
+ggplot(data = stat113_df, aes(x = Exercise, y = GPA)) +
+  geom_point() +
+  facet_grid(Sex ~ Sport)
+```
+```{r}
+  ggplot(data = stat113_df, aes(x = Wgt, y = Hgt, colour = Award)) +
+  geom_point()
+
+  ggplot(data = stat113_df, aes(x = Wgt, y = Hgt)) +
+    geom_point() +
+    facet_wrap(~Award)
+  
+  ggplot(data = stat113_df, aes(x = TV, y = Haircut)) +
+    geom_point() +
+    facet_wrap(~Year)
+  
+```
+```{r}
+ggplot(data = fitness_full, aes(x = steps, colour = weekday)) +
+  
+  geom_freqpoly()
+```
+
+
+## Section 2.5 HW 
+```{r}
+library(tidyverse)
+fitness_full <- read_csv("https://raw.githubusercontent.com/highamm/ds234_quarto/main/data_online/higham_fitness_clean.csv",
+                         col_types = list(stepgoal = col_factor())) |>
+  mutate(weekend_ind = case_when(weekday == "Sat" | weekday == "Sun" ~ "weekend",
+                                 TRUE ~ "weekday"))
+
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals, colour = stepgoal)) +
+  geom_point()
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals, colour = "blue")) +
+  geom_point()
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals)) +
+  geom_point(colour = "blue")
+```
+## Exercise 1
+```{r}
+ggplot(data = fitness_full, aes(x = Start, y = active_cals)) +
+  geom_point(shape = 4, size = 3)
+```
+## Exercise 2
+```{r}
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals)) +
+  geom_point() +
+  geom_smooth(linewidth = 4)
+```
+```{r}
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals, colour = stepgoal)) +
+  geom_point() +
+  geom_smooth()
+ggplot(data = fitness_full) +
+  geom_point(aes(x = Start, y = active_cals, colour = stepgoal)) +
+  geom_smooth(aes(x = Start, y = active_cals, colour = stepgoal))
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals)) +
+  geom_point(aes(colour = stepgoal)) +
+  geom_smooth()
+
+
+ggplot(data = fitness_full,
+       aes(x = Start, y = active_cals)) +
+  geom_point() +
+  geom_smooth(aes(colour = stepgoal))
+```
+## Exercise 3
+```{r}
+ggplot(data = fitness_full) +
+  geom_point(aes(x = Start, y = active_cals, colour = "green")) +
+  geom_line(aes(x = Start, y = active_cals, colour = "purple"))
+```
+## Exercise 4
+```{r}
+ggplot(data =fitness_full, 
+       aes(x =weekday,y= steps)) +
+  geom_boxplot(fill="coral1",colour ="green")
+```
+## Exercise 5
+1.) Tidyverse doesn't include statistical modeling or communication
+
+2.) They defining "tidy"ing as the process of organizing one's data in a consistent form for easier computation
+
+3.) As many R users are not programmers, Tidyverse is not written to target them but is made with easy syntax for everyday humans data analysts and does not make assumptions about programming skills. 
+
+4.) Data is imported and converted to dataframes at which point it is tidied to allow for consistency across data set. Data can then be transformed, visualized and modeled. The final step, communication, is not part of the tidyverse package and must be done to share findings whether through Rmarkdown or other means. 
+
+
+## Thursday Aug-30
+
+```{r}
+ggplot(data = stat113_df, aes(x = Sport, y = GPA)) +
+  geom_boxplot(outlier.shape = 8)
+```
+```{r}
+ggplot(data = stat113_df, aes(x = Haircut, y = ..density..)) +
+  geom_histogram(colour = "black", fill = "white")
+```
+
+
+Your Turn 5
+Lineplots are best served with 1 y value per unique X value like time not GPA
+
+Your Turn 6 
+Some students answered NA
+
+
+```{r}
+ggplot(data = stat113_df, aes( x = Wgt, y = Hgt)) +
+  geom_point(aes(colour = Sport)) +
+  geom_smooth()
+```
+
+```{r}
+ggplot(data = stat113_df, aes(x = TV)) +
+  geom_histogram(colour = "black", fill = "white")
+```
+
+```{r}
+ggplot(data = toy_df, aes(x = xvar, y = yvar, colour = groupvar)) +
+  geom_point(colour = "purple") +
+  geom_smooth(aes(method = "lm"))
+```
+Your turn 1
+Both B and E work and only ones where purple is not in the aes function and groupvar is
+
+your turn 2 - adding eveything to local
+```{r}
+ggplot(data = toy_df) +
+  geom_point(colour = "purple", aes(x = xvar, y = yvar)) +
+  geom_smooth(method = "lm", aes(x = xvar, y = yvar, colour = groupvar))
+```
+
+

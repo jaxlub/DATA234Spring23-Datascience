@@ -1,0 +1,83 @@
+---
+title: "Quiz11"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+Statement of Integrity: “All work presented is my own, and I have followed all rules for collaboration. I have not used any AI for this assignment.”
+
+
+Jax Lubkowitz
+
+# Question 1
+```{r}
+library(tidyverse)
+library(lubridate)
+library(here)
+ds_df <- read_csv(here("data/ds_google.csv")) |> mutate(Day = "01") |> 
+  separate(Month, c("Year", "Month")) |>
+  unite("new_date", c(Month, Day, Year), sep = "-") |> mutate(new_date = mdy(new_date))
+
+ggplot(data = ds_df, aes(x = new_date, y = Data_Science)) +
+  geom_line()
+```
+
+# Question 2
+```{r}
+issue_df <- tibble::tribble(~ party, ~ issue1_2012, 
+                              ~ issue2_2012, ~ issue3_2012,
+                              ~ issue1_2014, 
+                              ~ issue2_2014, ~ issue3_2014,
+                              ~ issue1_2016, 
+                              ~ issue2_2016, ~ issue3_2016,
+                              "Democrat", 87, 87, 92, 94,
+                              87,80, 72, 91, 90,
+                              "Independent", 50, 42, 42, 41,
+                              61, 62, 61, 50, 34,
+                              "Republican", 7, 8, 6, 6,
+                              7, 8, 6, 3, 9)
+tidyed_issues <- issue_df |> pivot_longer(c(2,3,4,5,6,7,8,9,10), 
+                          names_to = "Issues", 
+                          values_to = "Percent_Vote_Yes") |>
+        separate(col = Issues, into = c("Issue", "Years"), sep = "_") |> 
+        mutate(Year = make_date(year = Years)) |> 
+        mutate(Year = year(Year)) |> 
+        select(party,Year,Issue, Percent_Vote_Yes) |>
+        # Very round about way to make years not a chr :)
+        pivot_wider(names_from = Issue, values_from = Percent_Vote_Yes)
+tidyed_issues
+```
+
+# Question 3
+```{r}
+library(tidyverse)
+grades_df <- tibble::tibble(student_id = c(rep("A", 4), rep("B", 4),
+                              rep("C", 4), rep("D", 4),
+                              rep("E", 4)),
+               assignment_type = rep(c("Homework 1", "Homework 2",
+                                   "Project 1", "Exam 1"), 5),
+               student_score = c(14, 20, 40, 140,
+                                 16, 10, 50, 130,
+                                 20, 20, 30, 90,
+                                 20, 10, 50, 80,
+                                 10, 17, 50, 100),
+               assignment_points = c(rep(c(20, 20, 50, 150), 2),
+                                     rep(c(20, 20, 50, 100), 3)))
+# Method 1
+avg_method1 <- grades_df |> group_by(student_id) |> summarise(total_gotten = sum(student_score), total_possible = sum(assignment_points)) |> mutate(course_score = total_gotten/total_possible) |> select(student_id, course_score)
+avg_method1
+
+# Method 2
+avg_method2 <- grades_df |> group_by(student_id) |> mutate(score = student_score/assignment_points) |> summarise(course_score = mean(score))
+avg_method2
+```
+
+# Question 4
+```{r}
+grades_small <- grades_df |> filter(assignment_type == "Homework 2")
+grades_corrected <- grades_small |> mutate(student_score = if_else((student_score == 10 & assignment_points == 20), 15, student_score))
+grades_corrected
+```
+

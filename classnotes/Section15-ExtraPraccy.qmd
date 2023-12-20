@@ -1,0 +1,233 @@
+---
+title: "Section15"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+# Stat113 
+```{r}
+library(openintro)
+library(tidyverse)
+resume
+```
+
+H0:
+ There is no association between race and received_callback.
+
+Ha:
+ There is an association between race and received_callback.
+```{r}
+resume_sum <- resume |> 
+  mutate(received_callback = received_callback) |>
+           group_by(race, received_callback) |> summarise(count = n())
+```
+
+```{r}
+resume <- resume |>
+  mutate(received_callback = as.factor(received_callback))
+resume_sum <- resume |> 
+           group_by(race, received_callback) |>
+  summarise(count = n())
+
+ggplot(data = resume_sum, aes(x = race, y = count)) +
+  geom_col(aes(fill = received_callback)) +
+  scale_fill_viridis_d()
+resume |> group_by(race, received_callback) |>
+  summarise(count = n()) |>
+  pivot_wider(names_from = race,
+              values_from = count)
+```
+
+```{r}
+chisq.test(x = resume$race, y = resume$received_callback)
+```
+
+```{r}
+ggplot(data = resume, aes(x = fct_rev(fct_infreq(job_type)))) +
+  geom_bar() +
+  coord_flip() +
+  labs(x = "Job Type")
+ggplot(data = resume, aes(x = fct_rev(fct_infreq(job_industry)))) +
+  geom_bar() +
+  coord_flip() +
+  labs(x = "Job Industry")
+```
+
+```{r}
+resume_firstname <- resume |>
+  group_by(firstname) |>
+  summarise(propcallback = mean(received_callback == "1"),
+            gender = unique(gender),
+            race = unique(race)) |>
+  arrange(desc(propcallback)) |>
+  unite("gender_race", c(gender, race))
+
+ggplot(data = resume_firstname, aes(x = gender_race, y = propcallback)) +
+  geom_point()
+```
+
+```{r}
+library(ggrepel)
+label_df <- resume_firstname |> 
+  filter(propcallback == max(propcallback) |
+           propcallback == min(propcallback))
+
+ggplot(data = resume_firstname, aes(x = gender_race, y = propcallback)) +
+  geom_point() +
+  geom_label_repel(data = label_df, aes(label = firstname))
+```
+# Exercise 1
+Does Resume Quality impact call back?
+categorical variable
+```{r}
+resume_qual <- resume |> select(resume_quality, received_callback) |> group_by(resume_quality, received_callback) |> summarise(count = n())
+
+ggplot(data = resume_qual, aes(x = resume_quality, y = count)) +
+  geom_col(aes(fill = received_callback)) +
+  scale_fill_viridis_d()
+```
+
+# Exercise 2
+Does years_experience impact call back?
+Numeric variable
+```{r}
+resume_years <- resume |> select(years_experience, received_callback) |> filter(received_callback == '1')|> group_by(years_experience, received_callback) |> summarise(count = n())
+
+ggplot(data = resume_years, aes(x = years_experience, y = count)) +
+  geom_col() +
+  scale_fill_viridis_d() +
+  labs(title = "Distrbution of call backs by years of expirence")
+```
+# Exercise 3
+H0 - Prop called back of low quality resume = prop called back of high quality resume
+Ha - prop called back of low quality resume < prop called back of high quality resume
+```{r}
+chisq.test(x = resume$resume_quality, y = resume$received_callback)
+```
+I did not get a warning about assumptions. There is not significant evidence to reject the null hypothesis. There is not enough evidence to suggest that a higher quality resume has a higher proprortion of callbacks (p=.08) then low quality resumes. 
+
+# Exercise 4
+From this section, I learned how stat113 topics are translated into R. First we wrote a hypothesis test and then learned how to get a numeric assessment of our data (chi-sqr) as opposed to just looking at ggplots as we've done through the rest of the semester. We also looked at how to represent data in a stat113 friendly format. In addition labeling individual points is very helpful too. Review of writing null and alternative hypothesis is good practice as well. Generating graphs without hypothesis or understanding of the best graphs, defeats the effectivness and point of these visuals. 
+
+
+# CS140
+```{r}
+library(tidyverse)
+library(rvest)
+
+url_SLU <- "https://saintsathletics.com/sports/baseball/stats/2022"
+tab_SLU <- read_html(url_SLU) |> html_nodes("table")
+SLU_Hitting <- tab_SLU[[1]] |> html_table(fill = TRUE) |>
+  head(-2) |>
+  select(-23) |>
+  mutate(wOBA = (0.69 * BB + 0.72 * HBP + 0.89 * (H-`2B`-`3B`-`HR`) + 1.27 * `2B` + 1.62 * `3B` + 2.10 * HR) / (AB + BB + SF + HBP))
+```
+
+```{r}
+SLU_Hitting |> select(wOBA, everything()) |> arrange(desc(wOBA))
+```
+
+```{r}
+get_sum_squares <- function(x_vec) {
+  
+  sum_of_squares <- sum(x_vec ^ 2)
+  
+  return(sum_of_squares)
+}
+get_sum_squares(x_vec = c(2, 4, 1))
+
+```
+
+```{r}
+get_hitting_data <- function(url_name) {
+  
+  tab <- read_html(url_name) |> html_nodes("table")
+  
+  hitting <- tab[[1]] |> html_table(fill = TRUE) |>
+    head(-2) |>
+    select(-23) |>
+    mutate(wOBA = (0.69 * BB + 0.72 * HBP + 0.89 *
+                     (H- `2B` - `3B` - `HR`) +
+                     1.27 * `2B` + 1.62 * `3B` + 2.10 * HR) / 
+             (AB + BB + SF + HBP),
+           url_name = url_name)
+  
+  return(hitting)
+}
+get_hitting_data(url_name = "https://saintsathletics.com/sports/baseball/stats/2022")
+
+```
+
+```{r}
+school_df <- tibble(school_name = c("SLU", "Clarkson", "Rochester", "RIT", "Ithaca", "Skidmore", "RPI", "Union", "Bard", "Vassar"),
+                    hitting_web_url = c("https://saintsathletics.com/sports/baseball/stats/2022",
+                 "https://clarksonathletics.com/sports/baseball/stats/2022", 
+                 "https://uofrathletics.com/sports/baseball/stats/2022",
+                 "https://ritathletics.com/sports/baseball/stats/2022",
+                 "https://athletics.ithaca.edu/sports/baseball/stats/2022",
+                 "https://skidmoreathletics.com/sports/baseball/stats/2022",
+                 "https://rpiathletics.com/sports/baseball/stats/2022",
+                 "https://unionathletics.com/sports/baseball/stats/2022",
+                 "https://bardathletics.com/sports/baseball/stats/2022",
+                 "https://www.vassarathletics.com/sports/baseball/stats/2022"))
+```
+
+```{r}
+num_list <- list(vec1 = c(1, 4, 5), vec2 = c(9, 8, 3, 5), vec3 = 1)
+map(num_list, get_sum_squares)
+```
+
+```{r}
+url_vec <- school_df$hitting_web_url
+hitting_list <- map(url_vec, get_hitting_data)
+hitting_list
+```
+
+```{r}
+hitting_ll <- hitting_list |> bind_rows() |>
+  left_join(school_df, by = c("url_name" = "hitting_web_url"))
+hitting_ll
+```
+
+```{r}
+hitting_ll |> group_by(school_name) |>
+  arrange(desc(wOBA)) |>
+  slice(1:3) |>
+  select(Player, school_name, wOBA)
+```
+
+```{r}
+hitting_ll |> group_by(school_name) |>
+  arrange(desc(AB)) |>
+  slice(1:3) |>
+  select(Player, school_name, AB)
+```
+
+## Exercise 1
+```{r}
+library(rvest)
+library(tidyverse)
+
+Hot100BB <- function(years){
+  url <- paste0("https://en.wikipedia.org/wiki/Billboard_Year-End_Hot_100_singles_of_", years)
+  billboard_tab <- read_html(url) |> html_nodes("table")
+  billboard_df <- billboard_tab[[1]] |> html_table() |>
+  mutate(year = years)
+  return(billboard_df)
+}
+```
+## Exercise 2 & 3
+```{r}
+years = c(2014,2015,2016,2017,2018,2019,2020,2021)
+combined_df <- bind_rows(map(years, Hot100BB))
+combined_df |> group_by(`Artist(s)`) |>
+  summarise(n_appear = n()) |>
+  arrange(desc(n_appear))
+```
+
+## Exercise 4
+In this section, we learned how to write functions in R which are extremely helpful for decreasing repetitive code and increased readability. Function writing allows for very efficient time to write code as well and a function can be used in many different places. The map function we use is also very similar to a for-loop in our examples which further helps decrease repetitive code writing and increased readability. Applying 140 basics to R is super helpful once working on much larger projects where organization and repeated processes become more important.
+
+

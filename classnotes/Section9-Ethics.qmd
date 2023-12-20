@@ -1,0 +1,11 @@
+---
+title: "Section9-Ethics"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+Can still ID people in anonymous data using outliers and other things even if they don't give their name
+
+Hypothesis generation is flexible and allows one to explore many questions of interest. Hypothesis confirmation is focused on one and only one question.

@@ -1,0 +1,55 @@
+---
+title: "Take Home Quiz"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+Collaboration: 
+I worked with Zabette Kerman while I was working at the PQRC for Question 1. 
+
+
+```{r}
+#| echo: false
+#| warning: false
+library(tidyverse)
+library(tidyr)
+library(here)
+attendance_df <- read_csv(here("data/attendance_810.csv"))
+```
+
+```{r}
+#| warning: false
+
+weekly_present <- attendance_df |> 
+  pivot_longer(2:16, names_to = 'Class', values_to = "Attendence") |> 
+  separate(col = Class, into = c("Week", "DOW"), sep = -1) |> 
+  mutate(present = if_else(Attendence == "x", true = 1, false = 0)) |> 
+  group_by(DOW, Week) |>
+  summarise(total_present = 28 - sum(present, na.rm = TRUE))
+
+
+  
+ggplot(data = weekly_present, aes(x = DOW, y = total_present)) +
+  geom_jitter(width = 0.07, height = 0) +
+  labs(y = "n_att", y = "Day") +
+  ylim(0,30) +
+  geom_hline(yintercept = 28, linetype="dotted")
+```
+
+# Bonus
+Hacky Version with only tools we already know :)
+```{r}
+class_data <- weekly_present |> separate(col = Week, into = c("Junk", "WeekNum"), sep = -1) |> ungroup() |> mutate(week_int = as.integer(WeekNum)) |> select(DOW, week_int, total_present) |> mutate(day_rank = case_when(DOW == "F" ~ .9, DOW == 'W' ~ .5, DOW == 'M' ~ .1)) |> mutate(rank_val = day_rank + week_int) |> mutate(class_rank = rank(rank_val)) |> arrange(rank_val)
+
+ggplot(data = class_data, aes(x = class_rank, y = total_present)) +
+  geom_line() +
+  ylim(0,30) + 
+  labs(x = "Class Number", y = "n_att") +
+  geom_hline(yintercept = 28, linetype="dotted")
+
+``` 
+
+
+

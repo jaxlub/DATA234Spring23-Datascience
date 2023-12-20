@@ -1,0 +1,348 @@
+---
+title: "Effect of Comorbidities on COVID-19 Outcomes in Patients with Multiple Sclerosis"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+---
+# Introduction
+  Multiple Sclerosis is an autoimmune disease resulting in neuroinflammation and inhibition of the central nervous system. A global pandemic such as COVID-19 has serious implications for immunocompromised groups who are particularly susceptible to infection. Identifying and understanding the factors amongst these populations can assist in identifying at risk groups and can help guide effective treatments on a by-case basis. 
+  
+  The COVID data set consists of 1141 people with Multiple Sclerosis along with information on comorbidities, COVID treatments, hospitalizations and much more. With this information, we will explore trends and relationships between the impact of comorbidities on COVID-19 outcome by looking at various comorbidities, age, COVID outcome and smoking and various other factors. After exploring our data, we will delve into which comorbidities are correlated with COVID outcomes. From this preliminary exploration we will build KNN models to attempt to predict infection and outcome to identify individuals at risk and initiate treatment sooner with the intention of influencing the outcome.
+
+
+```{r}
+library(tidyverse)
+library(here)
+covid_df <- read_csv(here("data/physionet.org/files/patient-level-data-covid-ms/1.0.0/GDSI_OpenDataset_Final.csv"))
+```
+
+# Data Exploration: What Does Our Sample Look Like?
+## Multiple Sclerosis Type
+Multiple Sclerosis has a variety of types categorized into relapsing remitting MS (RRMS), progressive MS (PMS) or clinically isolated syndrome (CIS). Variation amongst MS cases could be a potential factor in COVID outcome. The majority of our data set consists of relapsing remitting cases. 
+```{r}
+ms_type_df <- covid_df |> 
+  select(ms_type2) |> 
+  group_by(ms_type2) |> 
+  mutate(ms_type2 = case_when(
+    ms_type2 == "other" ~ "CIS",
+    ms_type2 == "progressive_MS" ~ "PMS",
+    ms_type2 == "relapsing_remitting" ~ "RRMS")) |> 
+  summarise(total = n())
+
+ggplot(data = ms_type_df, aes(x = ms_type2, y = total, fill = ms_type2)) +
+  geom_col() +
+  labs(title = "Multiple Sclerosis Types", x = "MS Type", y = "Count") +
+  theme_minimal() +
+  scale_fill_viridis_d()
+```
+## Age
+Age is also a common factor in disease outcomes and could play a role in our models. Among our sample the majority are between 18 and 50 years of age. A small percentage of the sample has had a positive COVID-19 test as seen in yellow.  
+```{r}
+age_df <- covid_df |> select(age_in_cat, covid19_confirmed_case) |> 
+  mutate(age_in_fac = as_factor(age_in_cat)) |> 
+  mutate(age_in_fac = case_when(
+    age_in_fac == 0 ~ "0-18",
+    age_in_fac == 1 ~ "19-50",
+    age_in_fac == 2 ~ "51-70",
+    age_in_fac == 3 ~ "71+")) |> 
+  rename(Response = "covid19_confirmed_case") |>
+  mutate(Response = if_else(Response == "yes", "Positive", "Negative"))
+
+
+ggplot(data = age_df, aes(x = age_in_fac, fill = Response)) +
+  geom_bar() +
+  labs(title = "Number of COVID cases by Age", x = "Age", y = "Total") +
+  scale_fill_viridis_d()
+```
+
+As there is only 60 confirmed COVID-19 samples, we are going to assume the suspected cases are confirmed. While this does introduce some uncertainties into our data, the increase in COVID positive sample sizes will allow for more accurate models as we are able to meet size requirements for statistical analysis. This increases the total positive samples from 60 to 283. 
+
+```{r}
+confirmed_df <- covid_df |> 
+  mutate(had_covid = case_when(
+    covid19_diagnosis == "suspected" ~ "Positive",
+    covid19_diagnosis == "confirmed" ~ "Positive",
+    covid19_diagnosis == "not_suspected" ~ "Negative")) |>
+  mutate(covid19_diagnosis = as_factor(covid19_diagnosis)) |> 
+  mutate(age_in_fac = as_factor(age_in_cat)) |>
+  mutate(covid19_diagnosis = case_when(
+    age_in_fac == 0 ~ "0-18",
+    age_in_fac == 1 ~ "19-50",
+    age_in_fac == 2 ~ "51-70",
+    age_in_fac == 3 ~ "71+")) |> 
+  rename(Response = "had_covid") |> 
+  mutate(age_in_fac = case_when(
+    age_in_fac == 0 ~ "0-18",
+    age_in_fac == 1 ~ "19-50",
+    age_in_fac == 2 ~ "51-70",
+    age_in_fac == 3 ~ "71+"))
+
+
+ggplot(data = confirmed_df, aes(x = age_in_fac, fill = Response)) +
+  geom_bar() +
+  labs(title = "Number of COVID cases by Age assumming Suspected Cases are Positive", x = "Age", y = "Total")+
+  scale_fill_viridis_d()
+```
+
+# Do People With Multiple Sclerosis Have Higher Rates Of Hospitlization?
+Source:https://www.cdc.gov/mmwr/volumes/69/wr/mm6915e3.htm
+
+According to the CDC the hospitalization rate for COVID-19 is 4.6 per 100,000 people. Among our sample of 283 positive COVID cases 15 were hospitalized. Using this we will conduct a T-Test to determine if hospitalization rates in MS groups is significantly higher then those without.
+
+Ho: Hospitalization rates in MS groups with COVID = Hospitalization rates in US population with COVID
+
+Ha: Hospitalization rates in MS groups with COVID != Hospitalization rates in US population with COVID
+```{r}
+hospital_rates <- confirmed_df |> select(Response, covid19_admission_hospital) |> group_by(covid19_admission_hospital) |> summarise(total = n())
+
+not_hos <- hospital_rates$total[1]
+hos <- hospital_rates$total[2]
+sample_size <-hos+not_hos
+
+population_prop = 4.6/100000
+prop.test(x = hos, n = sample_size, p = population_prop)
+```
+With a p-value of ~0 there is very strong evidence that the rate of hospitalization in people with Multiple Sclerosis is significantly higher then that of the normal population. With this in mind, we can see how at risk people with MS are to COVID-19 with almost 285 times higher rates of hospitalization than the normal population (0.01314636 and 4.6/100000 respectively). This begs the question are there other factors at play within this population that increase the rates of hospitalization by this much?
+
+
+# Is There a Relationship Between Comorbidities and COVID-19 Outcome?
+As the name suggests, comorbidities often increase chances of death and can have even bigger implications when in the context of disease. Lots of studies have looked at these factors among the whole population but we hope to identify the factors in MS groups which have implications for COVID outcome. Initially we want to determine if there is a relationship between having any comorbidity and their COVID-19 outcome. 
+
+Ho: No association of COVID outcome and comorbidities
+
+Ha: Presence of comorbidity is related to COVID-19 Data
+```{r}
+CHI <- covid_df |> 
+  mutate(covid19_outcome = as_factor(covid19_outcome_levels_2)) |>
+  mutate(covid19_outcome = case_when(
+    covid19_outcome == 0 ~ 'Not Hospitlized',
+    covid19_outcome == 1 ~ 'Hospitlized',
+    covid19_outcome == 2 ~ 'ICU or VF',
+    covid19_outcome == 3 ~ 'Death'))
+
+#CHI |> select(covid19_outcome,has_comorbidities) |> group_by(covid19_outcome,has_comorbidities)|> summarise(total = n())
+chisq.test(x = CHI$covid19_outcome, y = CHI$has_comorbidities)
+
+```
+With this we can see there is strong evidence to reject the null hypothesis indicating having a comorbidity is related to COVID outcome. From here, we want to identify which specific comorbidities are playing a role. 
+
+# Which Comorbidity is Most Associated with COVID Outcome?
+```{r}
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_cardiovascular_disease) # not associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_chronic_kidney_disease) # associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_chronic_liver_disease) # associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_diabetes) # associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_immunodeficiency) # associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_lung_disease) # not associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_malignancy) # not associated
+chisq.test(x = CHI$covid19_outcome, y = CHI$com_neurological_neuromuscular) # associated
+#chisq.test(x = CHI$covid19_outcome, y = CHI$comorbidities_other) # Not enough data
+```
+By doing ChiSqr tests on each comorbidity and COVID-19 outcome we can identify which have the strongest relationship. Cardiovascular disease, lung disease and malignancy do not have a relation to COVID outcome while kidney disease, liver disease, diabetes, immunodeficiency and neurological neuromuscular problems are all strongly associated with COVID outcome. Using these associated comorbidities we will build a KNN model. 
+
+# Can Comorbidities Predict Covid Outcome?
+```{r}
+library(class)
+set.seed(1329)
+knn_data <- covid_df |>
+  mutate(covid19_outcome = as_factor(covid19_outcome_levels_2)) |>
+  mutate(covid19_outcome = case_when(
+    covid19_outcome == 0 ~ 'Not Hospitlized',
+    covid19_outcome == 1 ~ 'Hospitlized',
+    covid19_outcome == 2 ~ 'ICU or VF',
+    covid19_outcome == 3 ~ 'Death')) |> 
+  mutate(com_chronic_kidney_disease = case_when(
+    com_chronic_kidney_disease == "no" ~ 0,
+    com_chronic_kidney_disease == "yes" ~ 1,
+    is.na(com_chronic_kidney_disease) ~ 0)) |>
+  mutate(com_chronic_liver_disease = case_when(
+    com_chronic_liver_disease == "no" ~ 0,
+    com_chronic_liver_disease == "yes" ~ 1,
+    is.na(com_chronic_liver_disease) ~ 0)) |>
+  mutate(com_diabetes = case_when(
+    com_diabetes == "no" ~ 0,
+    com_diabetes == "yes" ~ 1,
+    is.na(com_diabetes) ~ 0)) |>
+  mutate(com_immunodeficiency = case_when(
+    com_immunodeficiency == "no" ~ 0,
+    com_immunodeficiency == "yes" ~ 1,
+    is.na(com_immunodeficiency) ~ 0)) |>
+  mutate(com_neurological_neuromuscular = case_when(
+    com_neurological_neuromuscular == "no" ~ 0,
+    com_neurological_neuromuscular == "yes" ~ 1,
+    is.na(com_neurological_neuromuscular) ~ 0)) |>
+  mutate(current_or_former_smoker = case_when(
+    current_or_former_smoker == "no" ~ 0,
+    current_or_former_smoker == "yes" ~ 1,
+    is.na(current_or_former_smoker) ~ 0))
+```
+
+```{r}
+# Training with 65% of data
+confirmed_covid <- knn_data |> 
+  mutate(had_covid = case_when(
+    covid19_diagnosis == "suspected" ~ "Positive",
+    covid19_diagnosis == "confirmed" ~ "Positive",
+    covid19_diagnosis == "not_suspected" ~ "Negative")) |>
+  filter(had_covid == "Positive")
+
+train_sample <- confirmed_covid |> 
+  slice_sample(n = 184)
+
+test_sample <- confirmed_covid |> 
+  anti_join(train_sample) 
+
+
+train_cat <- train_sample$covid19_outcome
+test_cat <- test_sample$covid19_outcome
+
+
+train_sample <- train_sample |>
+    select(com_chronic_kidney_disease,
+         com_chronic_liver_disease,
+         com_diabetes,
+         com_immunodeficiency,
+         com_neurological_neuromuscular,
+         current_or_former_smoker)
+
+test_sample <- test_sample |>
+    select(com_chronic_kidney_disease,
+         com_chronic_liver_disease,
+         com_diabetes,
+         com_immunodeficiency,
+         com_neurological_neuromuscular,
+         current_or_former_smoker)
+```
+
+```{r}
+highest_score <- 0
+best_k <- 0
+for (x in 1:99){
+  knn_mod <- knn(train = train_sample, test = test_sample,
+               cl = train_cat, k = x)
+  tab <- table(knn_mod, test_cat) 
+  score <- sum(diag(tab)) / sum(tab)
+  if (score >= highest_score){
+    highest_score <- score
+    best_k <- x
+  }
+}
+# Best k
+#best_k
+# Classification rate of best k value
+#highest_score
+
+tab <- table(knn_mod, test_cat) 
+
+# Confusion matrix
+#tab
+heatmap <- tab |> as.data.frame.matrix() |> rownames_to_column() |> as_tibble()
+
+heatmap_pivot <- heatmap |> 
+    pivot_longer(c(2,3,4), names_to = "Actual", values_to = "Count" ) |> 
+    mutate(rowname = fct_relevel(rowname,c("Hospitlized","ICU or VF","Not Hospitlized"))) |>
+    mutate(Actual = fct_relevel(Actual, c("Not Hospitlized","ICU or VF","Hospitlized"))) 
+
+```
+With 6 factors (kidney disease, liver disease, diabetes, immunodeficiency, neurological neuromuscular, current or former smoker) we built a KNN model to predict COVID-19 outcomes of those already infected. We used 65% of our sample to train our model to allow 35% for testing. From there the model used the entire test sample size for K: in this case the 99th nearest neighbors. As the rates of hospitalization are so low the model predicts all cases to be non-hospitalized with a classification rate of 0.9596. 
+```{r}
+  ggplot(data = heatmap_pivot, aes(y = rowname, x = Actual, fill = Count)) +
+    geom_tile() +
+    scale_fill_viridis_c() +
+    scale_x_discrete(position = "top") +
+    labs(y = "Predicted Outcome", x = "Actual Outcome", title = "Heatmap Predicitions") +
+    geom_text(aes(label = Count), color = "white")
+```
+
+
+# Can Comorbidities Predict Covid Infection?
+In addition to the association of  comorbidities and outcome, are groups with comorbidities more susceptible to getting infected to begin with? Using a ChiSqr analysis we did not find an association between the two but build a KNN model regardless. This KNN model compares those with a comorbidities to those that had COVID. Our model once again best performed when K was equal to the test sample size (358) which is an indication that we need more responses for each category as we do not meet all conditions. This model classified the chances of catching COVID by the presence of a comorbidity with 0.779 accuracy. 
+```{r}
+CHI <- knn_data |> 
+  mutate(had_covid = case_when(
+    covid19_diagnosis == "suspected" ~ "Positive",
+    covid19_diagnosis == "confirmed" ~ "Positive",
+    covid19_diagnosis == "not_suspected" ~ "Negative"))
+#CHI |> select(covid19_outcome,has_comorbidities) |> group_by(covid19_outcome,has_comorbidities)|> summarise(total = n())
+chisq.test(x = CHI$had_covid, y = CHI$has_comorbidities)
+
+```
+
+
+```{r}
+# Training with 65% of data
+confirmed_df <- covid_df |> 
+  mutate(had_covid = case_when(
+    covid19_diagnosis == "suspected" ~ "Positive",
+    covid19_diagnosis == "confirmed" ~ "Positive",
+    covid19_diagnosis == "not_suspected" ~ "Negative",
+    is.na(covid19_diagnosis) ~ "Negative")) |>
+  mutate(has_comorbidities = case_when(is.na(has_comorbidities) ~ 0,
+                                       has_comorbidities == "yes" ~ 1,
+                                       has_comorbidities == "no" ~ 0))
+  
+
+train_sample <- confirmed_df |> 
+  slice_sample(n = 783)
+
+test_sample <- confirmed_df |> 
+  anti_join(train_sample) 
+
+
+train_cat <- train_sample$had_covid
+test_cat <- test_sample$had_covid
+
+
+train_sample <- train_sample |>
+    select(has_comorbidities)
+
+test_sample <- test_sample |>
+    select(has_comorbidities)
+```
+
+```{r}
+#| output: false
+highest_score <- 0
+best_k <- 0
+for (x in 1:358){
+  knn_mod <- knn(train = train_sample, test = test_sample,
+               cl = train_cat, k = x)
+  tab <- table(knn_mod, test_cat) 
+  score <- sum(diag(tab)) / sum(tab)
+  if (score >= highest_score){
+    highest_score <- score
+    best_k <- x
+  }
+}
+# Best k
+best_k
+# Classification rate of best k value
+highest_score
+
+tab <- table(knn_mod, test_cat) 
+
+# Confusion matrix
+tab
+```
+
+
+
+
+# Project Reflection and Conclusion
+  From this Multiple Sclerosis sample, we were able to identify comorbidities that are associated with COVID-19 outcome. Understanding the implications of patient background is critical for preventative and preemptive treatment of at-risk groups. We identifed an association between kidney disease, liver disease, diabetes, immunodeficiency and neurological neuromuscular problems and COVID outcome. In addition the rate of hospitalization in this sample was magnitudes higher than the CDC's data on the normal population, highlighting how relevant understanding and addressing this disparity can have major implications on human health outcomes. While we were able to identify associated comorbidities, our models were ineffective at predicting outcomes using these comorbidities. This is most likely the result of having such a small sample size both in terms of COVID outcomes (ie 10 hospitalizations and 5 ICU's in data set) and in terms of comorbidities (ex. 28.4% have a comorbidity but only 0.35% have kidney disease). The conclusions drawn from this data must also be considered in the light that we assumed suspected-COVID patients to be positive. That being said these associations are significant and indicate a need for further analysis. 
+  
+  Initially, I set about exploring the data set and looking over variables that might be of interest. As there is almost 50 different variables, I tried to make a new data-frame for each step of the process with only the variables I was looking at currently just for readability and ease. Every single variable in this data set is categorical which makes it frustrating to make neat graphs and limits some analysis techniques. With this in mind I implemented many ChiSqr Tests which was introduced in Section 15. I also used factors from section 8 and of course lots of sections 2 & 3 (dplyer & ggplot). The KNN models relied heavily on and followed the structure of the KNN models we did in section 14. Moving forward I would like to find data sets to further our research with continues numerical data. 
+  
+  Working with a real data set that we did not collect and is not build for "clean" data analytics is a big change from in the classroom. Real data is inherently messy and this data set was no different. There was a wide variety of categorical variables which in this quantity is unusual. In addition, there was a vast number of NAs within the data set that made analysis more complicated. I ended up shifting NA's to the false values of each variable as no indication of X most likely means one does not have X (ex. Not responding to Does one have kidney disease? generally indicates one does not have kidney disease.). This is a bad practice, especially when regarding human health, but our sample size was very small. In the future when working with public health data a larger data set would be much better for drawing reasonable conclusion and representing the population as a whole. Overall, I really enjoyed working with a scientific data set such as this and trying to make connections to public health was very interesting. Through the application of what we have learned in this class, I came to appreciate how much one can do with this skill set and the impacts our analysis could have on treatment protocols and human health.
+
+# Data
+Khan, H., Geys, L., baneke, p., Comi, G., & Peeters, L. (2023). Patient-level dataset to study the effect of COVID-19 in people with Multiple Sclerosis (version 1.0.0). PhysioNet. https://doi.org/10.13026/feem-fn23.
+
+Goldberger, A., Amaral, L., Glass, L., Hausdorff, J., Ivanov, P. C., Mark, R., ... & Stanley, H. E. (2000). PhysioBank, PhysioToolkit, and PhysioNet: Components of a new research resource for complex physiologic signals. Circulation [Online]. 101 (23), pp. e215–e220.
+
+  
+  

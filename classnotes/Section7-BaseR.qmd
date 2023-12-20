@@ -1,0 +1,183 @@
+---
+title: "Section7-BaseR"
+author: "Jax Lubkowitz"
+format: 
+  html:
+    embed-resources: true
+---
+
+```{r}
+library(tidyverse)
+library(here)
+videogame_df <- read_csv(here("data/videogame_clean.csv"))
+
+videogame_small <- videogame_df |> slice(1:100)
+ggplot(data = videogame_small, aes(x = release_date, y = price)) +
+  geom_point() 
+
+ggplot(data = videogame_small, aes(x = release_date2, y = metascore)) +
+  geom_point(aes(colour = price_cat))
+
+#videogame_df$game
+
+str(videogame_df$game)
+
+class(videogame_df$game)
+
+mean(videogame_df$game)
+
+videogame_df |> summarise(maxgame = max(game))
+
+class(as.factor(videogame_df$meta_cat))
+
+videogame_df <- videogame_df |>
+  mutate(meta_cat_factor = as.factor(meta_cat))
+str(videogame_df$meta_cat_factor)
+
+str(videogame_df$release_date)
+str(videogame_df$release_date2)
+
+median(videogame_df$release_date2, na.rm = TRUE)
+mean(videogame_df$release_date2, na.rm = TRUE)
+
+str(as.factor(videogame_df$price_cat))
+
+
+videogame_df <- videogame_df |>
+  mutate(price_factor = as.factor(price_cat)) 
+ggplot(data = videogame_df, aes(x = release_date2, y = metascore)) +
+  geom_point(aes(colour = price_factor))
+
+str(videogame_df$playtime_miss)
+sum(videogame_df$playtime_miss)
+mean(videogame_df$playtime_miss)
+```
+
+## Exercise 1
+```{r}
+library(tidyverse)
+fitness_df <- read_csv(here("data/higham_fitness_notclean.csv"))
+
+fitness_df <- fitness_df |>  mutate(weekday_factor = as.factor(weekday)) 
+
+ggplot(data = fitness_df, aes(x = active_cals)) +
+  geom_freqpoly(aes(group = weekday_factor, colour = weekday_factor)) +
+  theme_minimal() +
+  labs(colour = "Day of the Week")
+```
+## Exercise 2
+Step-goal could also be a logical where True is meeting step-goal and False is not. 
+
+## Exercise 3
+```{r}
+                                     
+fitness_df <- fitness_df |> mutate(stepgoal_logical = as.logical(stepgoal))
+
+sum(fitness_df$stepgoal_logical)
+mean(fitness_df$stepgoal_logical)
+```
+
+
+```{r}
+str(videogame_df)
+videogame_df[5, 3] #rows, columns
+
+videogame_df[ ,3] # 3rd column
+videogame_df[5, ] # 5th row
+
+videogame_df[ ,3:7] ## grab columns 3 through 7
+videogame_df[3:7, ] ## grab rows 3 through 7
+
+videogame_df[ ,c(1, 3, 4)] ## grab columns 1, 3, and 4
+videogame_df[c(1, 3, 4), ] ## grab rows 1, 3, and 4
+
+
+vec1 <- c(1, 3, 2)
+vec2 <- c("b", 1, 2)
+vec3 <- c(FALSE, FALSE, TRUE)
+str(vec1); str(vec2); str(vec3)
+
+
+#videogame_df$metascore
+metavec <- videogame_df$metascore
+mean(metavec, na.rm = TRUE)
+metavec[100]
+```
+Lists can have multiple classes in them 
+```{r}
+testlist <- list("a", 4, c(1, 4, 2, 6),
+                 tibble(x = c(1, 2), y = c(3, 2)))
+head(testlist)
+```
+
+## Exercise 4
+Slice can also be used to take certain rows and select or pull can be used to grab columns from the dataframe.
+
+## Exercise 5
+```{r}
+first100_index <- videogame_df |> arrange(release_date2)
+first100_index <- first100_index[0:100, ] 
+
+first100_dplyr <- videogame_df |> arrange(release_date2) |> slice(0:100)
+```
+
+## Exercise 6
+```{r}
+no_owner_index <- videogame_df[,-5]
+no_owner_dplyr <- videogame_df |> select(-owners)
+```
+
+rnorm() can be used to generate a certain number of normal random variables with a given mean and standard deviation. It has three arguments: the sample size, the mean, and the standard deviation.
+
+sample() can be used to obtain a sample from a vector, either with or without replacement: it has two required arguments: the vector that we want to sample from and size, the size of the sample.
+
+set.seed() can be used to fix R’s random seed. This can be set so that, for example, each person in our class can get the same random sample as long we all set the same seed.
+
+```{r}
+set.seed(15125141)
+toy_df <- tibble(xvar = rnorm(100, 3, 4),
+                 yvar = rnorm(100, -5, 10),
+                 group1 = sample(c("A", "B", "C"), size = 100, replace = TRUE),
+                 group2 = sample(c("Place1", "Place2", "Place3"), size = 100,
+                                 replace = TRUE))
+table(toy_df$group1)
+
+table(toy_df$group1, toy_df$group2)
+
+nrow(toy_df)
+summary(toy_df$yvar)
+```
+
+## Exercise 7
+```{r}
+summary(videogame_df$metascore)
+```
+
+
+```{r}
+weekend = c(1,7)
+weekday = c(2,3,4,5,6)
+
+fitness_df |> mutate(weekend_ind = if_else(weekday %in% weekday, true = "weekday", false = "weekend"))
+
+practice <- tibble(group1 = c("A", 27),
+                 group2 = c("B", 39), 
+                 group3 = c("C", 34))
+toy_df |> group_by(group1) |> summarise(n_count = n()) |> pivot_wider(names_from = group1, values_from = n_count)
+
+toy_df |> group_by(group1, group2) |>  summarise(n_count = n()) |> pivot_wider(names_from = group2, values_from = n_count)
+                 
+
+videogame_df <- read_csv(here("data/videogame_clean.csv"))
+
+videogame_df |> filter(metascore.isNA == FALSE)
+fifteen <- videogame_df |> filter(median_playtime >= 1500)
+
+ggplot(data = videogame_df, aes(x = metascore, y = median_playtime))+
+  geom_jitter(alpha = .2) +
+  geom_text(data = fifteen, aes(label = game))
+
+```
+
+
+

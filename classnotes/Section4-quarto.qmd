@@ -1,0 +1,148 @@
+---
+title: "Section4-quarto"
+author: "Jax Lubkowitz"
+execute: 
+  warning: false
+format: 
+  html:
+    embed-resources: true
+    fig-height: 3
+---
+
+# Section 4.1, 4.2, 4.3
+
+## Exercise 1
+
+Quarto allows for an integration of text and code into one seamless file that is only semi-achievable in R and only through comments and is much harder to include figures. R scripts are used for projects that emphasize the coding portion and thus don't need much writing or additional context with them.
+
+## Exercise 2
+
+Quarto files ensure all chunks can actually run which means that the proper packages are installed as well as any potential dependencies and thus is reproducible. In an R script, it may run on my computer but may be running programs that I didn't load or download in the script and thus wouldn't work if I sent it to a peer to show them the results and they tried to run it.
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-height: 5
+#| fig-width: 10
+#| fig-cap: "Figure 1: caption text blah blah blah"
+library(tidyverse)
+head(cars)
+ggplot(data = cars, aes(x = speed, y = dist)) +
+  geom_point()
+```
+
+```{r}
+library(knitr)
+library(pander)
+head(cars) |> kable()
+head(cars) |> pander()
+```
+
+* Bullet 1
+* Bullet 2
+    - Sub bullet 1
+    - Sub bullet 2
+    - Sub bullet 3
+    
+## Exercise 3
+```{r}
+head(mtcars)
+mtcars |> group_by(cyl) |> summarise(meanMPG = mean(mpg)) |> kable()
+mtcars |> group_by(cyl) |> summarise(meanMPG = mean(mpg)) |> pander()
+```
+
+## Exercise 4
+```{r}
+#| fig-cap: "First Figure Caption"
+mtcars |> group_by(cyl) |> summarise(meanMPG = mean(mpg)) |> kable(digits = 1)
+```
+
+## Exercise 5
+```{r}
+#| echo: true
+#| output: false
+library(tidyverse)
+head(mtcars)
+ggplot(data = mtcars, aes(x = factor(cyl), y = mpg)) +
+  geom_boxplot()
+```
+
+```{r}
+library(ggrepel)
+
+hpi_df <- read_csv("https://raw.githubusercontent.com/highamm/ds234_quarto/main/data_online/hpi-tidy.csv")
+head(hpi_df)
+ggplot(data = hpi_df, aes(x = Footprint, y = HappyLifeYears,
+                          colour = Region)) +
+  geom_point() +
+  labs(title = "Countries with a Higher Ecological Footprint Tend to Have Citizens with Longer, Happier Lives", 
+       ## add title
+       subtitle = "HappyLifeYears is a Combination of Life Expectancy and Citizen Well-Being", 
+       ## add subtitle (smaller text size than the title)
+       caption = "Data Source: http://happyplanetindex.org/countries", 
+       ## add caption to the bottom of the figure
+       x = "Ecological Footprint", ## change x axis label
+       y = "Happy Life Years", ## change y axis label
+       colour = "World Region") ## change label of colour legend
+ggplot(data = hpi_df, aes(x = Footprint, y = HappyLifeYears,
+                          colour = Region)) +
+  geom_point() +
+  ylim(c(0, 70)) +
+  scale_colour_brewer(palette = "Accent")+
+  scale_colour_viridis_d(option = "plasma")+
+  geom_label(aes(label = Country))
+
+plot_df <- hpi_df |> group_by(Region) |> filter(HPIRank == min(HPIRank))
+
+ggplot(data = hpi_df, aes(x = Footprint, y = HappyLifeYears, colour = Region)) +
+  geom_point() +
+  scale_colour_brewer(palette = "Dark2") +
+  geom_label_repel(data = plot_df, aes(label = Country), show.legend = FALSE) +
+  geom_point(data = plot_df, size = 3, shape = 1, show.legend = FALSE) 
+```
+
+## Exercise 6
+```{r}
+library(palmerpenguins) ## will need to install.packages("palmerpenguins")
+## if we have not used this package in class yet.
+library(ggthemes)
+
+
+ggplot(data = penguins, aes(x = bill_length_mm, y = bill_depth_mm, colour = species)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  labs(title = "This is a Title!",
+       x = "Bill Length (mm)",
+       y = "Bill Depth (mm)") +
+  scale_colour_viridis_d(option = "plasma") +
+  theme_economist()
+```
+
+```{r}
+library(gapminder)
+country_df <- gapminder
+
+library(tidyverse)
+ggplot(data = country_df, aes(x = year, y = lifeExp, group = country, colour = continent)) +
+  geom_line() +
+  facet_wrap(~ continent) +
+  labs(title = "Life Expectancy by Conteinent", x = "year", y = "Life Expectency") +
+  scale_color_brewer()
+
+lowest <- country_df |> group_by(continent) |> filter(lifeExp == min(lifeExp)) |> filter(continent == "Asia" | continent == "Africa"| continent == "Europe")
+
+ggplot(data = country_df, aes(x = year, y = lifeExp, group = country, colour = continent)) +
+  geom_line() +
+  facet_wrap(~ continent) +
+  labs(title = "Life Expectancy by Conteinent", x = "year", y = "Life Expectency") +
+  scale_color_brewer() +
+  geom_label(data = lowest, aes(label = country), show.legend = FALSE ) + 
+  theme(legend.position="bottom")
+```
+
+```{r}
+
+```
+
+
+    
